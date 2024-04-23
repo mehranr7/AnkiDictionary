@@ -8,6 +8,7 @@
             Console.WriteLine("1. Ask Gemini then copy note(s)");
             Console.WriteLine("2. Give me note(s) to add them to Anki");
             Console.WriteLine("3. Separate Front and Pronunciation fields");
+            Console.WriteLine("4. Update dictionary items using JSON");
             Console.WriteLine("Esc. Exit\n");
             return Console.ReadKey(true).KeyChar.ToString();
         }
@@ -108,6 +109,25 @@
             DictionaryJsonUtility.ExportDictionaryToJson(previousDictionary);
 
             ClipboardManager.SetText(frontList);
+        }
+
+        public static void UpdateNotes(List<AnkiNote> ankiNotes)
+        {
+            var ankiWindow = FindAnkiWindow();
+            
+            Console.WriteLine("\n____________\n");
+            Console.Write("Focusing on Anki and Opening Browse window.");
+            var isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
+            while (!isAnkiOpened)
+            {
+                Console.Write(".");
+                isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
+            }
+            Console.WriteLine("\n Focused. Please be patient until it finish.");
+
+            ControllerSimulator.OpenBrowseWindow(ankiWindow);
+
+            ControllerSimulator.UpdateNotes(ankiNotes);
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using WindowsInput;
+﻿using System.Linq;
+using WindowsInput;
 using WindowsInput.Native;
 
 namespace AnkiDictionary
@@ -280,6 +281,92 @@ namespace AnkiDictionary
             
             ClickKey(VirtualKeyCode.ESCAPE);
             return unfinishedCards;
+        }
+
+        public static void UpdateNotes(List<AnkiNote> ankiNotes)
+        {
+            var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
+
+            foreach (var item in dictionary)
+            {
+                Console.WriteLine(item.Key);
+
+                var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
+                if (note == null) continue;
+
+                // find the note
+                LongPause();
+                
+                CtrlA();
+                WriteText("nid:"+item.Value);
+                ClickKey(VirtualKeyCode.RETURN);
+                ClickKey(VirtualKeyCode.TAB);
+
+                // go to first field
+                for (var i = 0; i < 4; i++)
+                {
+                    ClickKey(VirtualKeyCode.TAB);
+                }
+
+                // update data
+
+                // Front
+                CtrlA();
+                WriteText(note.Text);
+                ClickKey(VirtualKeyCode.TAB);
+        
+                // Pronunciation
+                ClickKey(VirtualKeyCode.TAB);
+        
+                // Type
+                CtrlA();
+                WriteText(note.Type);
+                ClickKey(VirtualKeyCode.TAB);
+
+                // Usage
+                CtrlA();
+                WriteText(note.Usage);
+                ClickKey(VirtualKeyCode.TAB);
+
+                // Definition
+                CtrlA();
+                WriteText(note.Definition);
+                ClickKey(VirtualKeyCode.TAB);
+        
+                // Image
+                //WriteText(note.Image);
+                ClickKey(VirtualKeyCode.TAB);
+        
+                // Sentence
+                CtrlA();
+                WriteText(note.Sentence);
+                ClickKey(VirtualKeyCode.TAB);
+
+                // Persian
+                CtrlA();
+                WriteText(note.Persian);
+                ClickKey(VirtualKeyCode.TAB);
+
+                // Collocation
+                CtrlA();
+                WriteText(GetListOf(note.Collocations));
+                ClickKey(VirtualKeyCode.TAB);
+
+                // Synonyms
+                CtrlA();
+                WriteText(GetListOf(note.Synonyms));
+                ClickKey(VirtualKeyCode.TAB);
+
+                // Antonyms
+                CtrlA();
+                WriteText(GetListOf(note.Antonyms));
+                ClickKey(VirtualKeyCode.TAB);
+
+                dictionary.Remove(item.Key);
+                DictionaryJsonUtility.ExportDictionaryToJson(dictionary);
+            }
+
+            ClickKey(VirtualKeyCode.ESCAPE);
         }
     }
 }

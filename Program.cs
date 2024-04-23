@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 // choose option
 var option = ProgramHandler.AskOptions();
-var validOptions = new List<string> {"1", "2", "3", "\u001b"};
+var validOptions = new List<string> {"1", "2", "3", "4", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -48,6 +48,7 @@ while (!option.Equals("\u001b"))
             await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
 
             break;
+
         case "2":
             List<AnkiNote> notes;
 
@@ -72,6 +73,7 @@ while (!option.Equals("\u001b"))
             }
             ProgramHandler.StartAddingNotes(notes);
             break;
+
         case "3":
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Give me the text if you want me to apply FILTER:");
@@ -85,6 +87,31 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("How many record do you want me to SKIP?");
             var skips = Int32.Parse(Console.ReadLine()!);
             ProgramHandler.SeparateFrontAndPronunciation(filter!, recordCount, skips);
+            break;
+
+        case "4":
+            List<AnkiNote> updateNotes;
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("Give me your note(s) to start. (JSON format)");
+            var stringUpdateNotes = Console.ReadLine();
+            while (stringUpdateNotes is null)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine("Give me your note(s) to start. (JSON format)");
+                stringUpdateNotes = Console.ReadLine();
+            }
+            try
+            {
+                updateNotes = GeminiDictionaryConvertor.StringToAnkiNotes(stringUpdateNotes);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
+                break;
+            }
+            ProgramHandler.UpdateNotes(updateNotes);
             break;
     }
     
