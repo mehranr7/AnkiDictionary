@@ -86,7 +86,7 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("\n____________\n");
             Console.WriteLine("How many record do you want me to SKIP?");
             var skips = Int32.Parse(Console.ReadLine()!);
-            ProgramHandler.SeparateFrontAndPronunciation(filter!, recordCount, skips);
+            ProgramHandler.SeparateImageAndPronunciation(filter!, recordCount, skips);
             break;
 
         case "4":

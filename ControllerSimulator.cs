@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using WindowsInput;
+﻿using WindowsInput;
 using WindowsInput.Native;
 
 namespace AnkiDictionary
@@ -71,6 +70,19 @@ namespace AnkiDictionary
             ShortPause();
             Simulator.Keyboard.KeyUp(VirtualKeyCode.SHIFT);
             LongPause();
+        }
+        
+        private static void CtrlShiftX()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.SHIFT);
+            ShortPause();
+            ClickKey(VirtualKeyCode.VK_X);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.SHIFT);
+            ShortPause();
         }
 
         private static void CtrlEnter()
@@ -179,7 +191,7 @@ namespace AnkiDictionary
             return wasFound;
         }
         
-        public static Dictionary<string,string> StartSeparatingPronunciation(string filter, int recordsCount, int skips)
+        public static Dictionary<string,string> StartSeparatingParts(string filter, int recordsCount, int skips)
         {
             var unfinishedCards = new Dictionary<string,string>();
 
@@ -236,8 +248,8 @@ namespace AnkiDictionary
                     ClickKey(VirtualKeyCode.TAB);
                 }
 
+                // check TypeGroup
                 ClickKey(VirtualKeyCode.TAB);
-                
                 CtrlA();
                 ClickKey(VirtualKeyCode.RIGHT);
                 ClickKey(VirtualKeyCode.VK_A);
@@ -253,7 +265,33 @@ namespace AnkiDictionary
                 ClickKey(VirtualKeyCode.RIGHT);
                 ClickKey(VirtualKeyCode.BACK);
 
-                for (var j = 0; j < 10; j++)
+                // check definition if contains image
+                ClickKey(VirtualKeyCode.TAB);
+                ClickKey(VirtualKeyCode.TAB);
+                CtrlShiftX();
+                CtrlA();
+                CtrlC();
+                var definitionText = ClipboardManager.GetText();
+                if (definitionText.Contains("<img"))
+                {
+                    var startDef = definitionText.IndexOf("<img", StringComparison.Ordinal);
+                    var endDef = definitionText.IndexOf(">", startDef, StringComparison.Ordinal);
+                    var actualDef = definitionText.Substring(0, startDef);
+                    actualDef = actualDef.Replace("<br>", "");
+                    actualDef = actualDef.Replace("<br/>", "");
+                    var image = definitionText.Substring(startDef, endDef-startDef);
+
+                    // fix
+                    WriteText(actualDef);
+                    CtrlShiftX();
+                    ClickKey(VirtualKeyCode.TAB);
+                    CtrlShiftX();
+                    WriteText(image);
+                    CtrlShiftX();
+
+                }
+
+                for (var j = 0; j < 8; j++)
                 {
                     ClickKey(VirtualKeyCode.TAB);
                 }

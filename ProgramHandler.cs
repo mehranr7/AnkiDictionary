@@ -7,7 +7,7 @@
             Console.WriteLine("What do you want to do?");
             Console.WriteLine("1. Ask Gemini then copy note(s)");
             Console.WriteLine("2. Give me note(s) to add them to Anki");
-            Console.WriteLine("3. Separate Front and Pronunciation fields");
+            Console.WriteLine("3. Separate Image and Pronunciation fields and validation");
             Console.WriteLine("4. Update dictionary items using JSON");
             Console.WriteLine("Esc. Exit\n");
             return Console.ReadKey(true).KeyChar.ToString();
@@ -81,7 +81,7 @@
             return ankiWindow;
         }
 
-        public static void SeparateFrontAndPronunciation(string filter, int recordCount, int skips)
+        public static void SeparateImageAndPronunciation(string filter, int recordCount, int skips)
         {
             var ankiWindow = FindAnkiWindow();
             
@@ -95,7 +95,7 @@
             }
             Console.WriteLine("\n Focused. Please be patient until it finish.");
 
-            var unfinishedCards = ControllerSimulator.StartSeparatingPronunciation(filter, recordCount, skips);
+            var unfinishedCards = ControllerSimulator.StartSeparatingParts(filter, recordCount, skips);
             var previousDictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
 
             var frontList = "";
