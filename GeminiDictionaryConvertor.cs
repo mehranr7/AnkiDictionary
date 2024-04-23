@@ -11,7 +11,6 @@ namespace AnkiDictionary
         private readonly ChatCompletionOptions _completionOptions;
         private readonly GeminiClient _client;
         private readonly ChatConversation _conversation;
-        private readonly string _apiKey;
 
         private const string Introduction = @"I want you to act as dictionary. I'll provide a text. give me in order the following things :
 
@@ -34,8 +33,7 @@ consider when I separate a word or a group of words using comma the answer must 
         
         public GeminiDictionaryConvertor(string apiKey)
         {
-            _apiKey = apiKey;
-            _client = new GeminiClient(_apiKey);
+            _client = new GeminiClient(apiKey);
             _conversation = new ChatConversation();
             _completionOptions = new ChatCompletionOptions()
             {
@@ -81,7 +79,7 @@ consider when I separate a word or a group of words using comma the answer must 
         public async Task<List<AnkiNote>> GeminiTransformer(string input)
         {
             var response = await AskGemini(input);
-            ControllerSimulator.Copy(response);
+            ClipboardManager.SetText(response);
             var ankiNotes = StringToAnkiNotes(response);
             return ankiNotes;
         }

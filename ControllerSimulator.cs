@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using WindowsInput;
+﻿using WindowsInput;
 using WindowsInput.Native;
 
 namespace AnkiDictionary
@@ -40,6 +39,37 @@ namespace AnkiDictionary
             ClickKey(VirtualKeyCode.VK_T);
             Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
+        }
+        
+        private static void CtrlA()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            ClickKey(VirtualKeyCode.VK_A);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
+            ShortPause();
+        }
+        
+        private static void CtrlC()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            ClickKey(VirtualKeyCode.VK_C);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
+            ShortPause();
+        }
+        
+        private static void CtrlShiftI()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.SHIFT);
+            ShortPause();
+            ClickKey(VirtualKeyCode.VK_I);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.SHIFT);
+            LongPause();
         }
 
         private static void CtrlEnter()
@@ -130,7 +160,7 @@ namespace AnkiDictionary
 
         }
         
-        public static bool OpenNewWindow(string ankiWindowTitle)
+        public static bool OpenAddNewWindow(string ankiWindowTitle)
         {
             var wasFound = WindowsManager.FocusOn(ankiWindowTitle);
             if (!wasFound) return wasFound;
@@ -138,32 +168,118 @@ namespace AnkiDictionary
             LongPause();
             return wasFound;
         }
-
-        public static void Copy(string textToCopy)
+        
+        public static bool OpenBrowseWindow(string ankiWindowTitle)
         {
-            [DllImport("user32.dll")]
-            static extern bool OpenClipboard(IntPtr hWndNewOwner);
+            var wasFound = WindowsManager.FocusOn(ankiWindowTitle);
+            if (!wasFound) return wasFound;
+            Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_B);
+            LongPause();
+            return wasFound;
+        }
+        
+        public static Dictionary<string,string> StartSeparatingPronunciation(string filter, int recordsCount, int skips)
+        {
+            var unfinishedCards = new Dictionary<string,string>();
 
-            [DllImport("user32.dll")]
-            static extern bool CloseClipboard();
+            // Apply filter
+            LongPause();
+            WriteText(filter);
+            ClickKey(VirtualKeyCode.RETURN);
+            ClickKey(VirtualKeyCode.TAB);
+            for (var i = 0; i < recordsCount; i++)
+            {
 
-            [DllImport("user32.dll")]
-            static extern bool EmptyClipboard();
+                // Select record
+                if (i == 0)
+                {
+                    for (var j = 0; j < skips; j++)
+                    {
+                        ClickKey(VirtualKeyCode.DOWN);
+                        ClickKey(VirtualKeyCode.DOWN);
+                    }
+                }
+                else
+                {
+                    ClickKey(VirtualKeyCode.DOWN);
+                    ClickKey(VirtualKeyCode.DOWN);
+                }
 
-            [DllImport("user32.dll")]
-            static extern IntPtr SetClipboardData(uint uFormat, IntPtr data);
+                
+                for (var j = 0; j < 4; j++)
+                {
+                    ClickKey(VirtualKeyCode.TAB);
+                }
 
-            const uint cfUniCodeText = 13;
+                // Read Front field                     
+                CtrlA();
+                CtrlC();
+                var front = ClipboardManager.GetText();
+                var actualFront = front;
+                if (front.Contains('['))
+                {
+                    var splitFront = front.Split('[');
+                    actualFront = splitFront[0];
+                    actualFront = actualFront.Replace("\n", "");
+                    actualFront = actualFront.Replace("\r", "");
+                    var sound = "["+splitFront[1];
+
+                    // edit
+                    WriteText(actualFront);
+                    ClickKey(VirtualKeyCode.TAB);
+                    CtrlA();
+                    WriteText(sound);
+                }
+                else
+                {
+                    ClickKey(VirtualKeyCode.TAB);
+                }
+
+                ClickKey(VirtualKeyCode.TAB);
+                
+                CtrlA();
+                ClickKey(VirtualKeyCode.RIGHT);
+                ClickKey(VirtualKeyCode.VK_A);
+                CtrlA();
+                CtrlC();
+
+                var needInfo = false;
+                var typeGroup = ClipboardManager.GetText();
+                if (typeGroup.ToLower().Equals("a"))
+                    needInfo = true;
+
+                
+                ClickKey(VirtualKeyCode.RIGHT);
+                ClickKey(VirtualKeyCode.BACK);
+
+                for (var j = 0; j < 10; j++)
+                {
+                    ClickKey(VirtualKeyCode.TAB);
+                }
+
+                if (!needInfo || unfinishedCards.ContainsKey(actualFront)) continue;
+                CtrlShiftI();
+                ClickKey(VirtualKeyCode.TAB);
+                CtrlA();
+                CtrlC();
+                var cardInfo = ClipboardManager.GetText();
+                var start = cardInfo.IndexOf("Note ID", StringComparison.Ordinal);
+                var end = cardInfo.IndexOf("\n", start, StringComparison.Ordinal);
+                var noteId = cardInfo.Substring(start, end-start);
+                    
+                noteId = noteId.Replace("Note ID", "");
+                noteId = noteId.Replace("\n", "");
+                noteId = noteId.Replace("\r", "");
+                noteId = noteId.Replace("\t", "");
+
+                unfinishedCards.Add(actualFront, noteId);
+                    
+                ClickKey(VirtualKeyCode.ESCAPE);
+
+            }
             
-            if (!OpenClipboard(IntPtr.Zero)) return;
-
-            EmptyClipboard();
-            var bytes = System.Text.Encoding.Unicode.GetBytes(textToCopy);
-            var ptr = Marshal.AllocHGlobal(bytes.Length + 2);
-            Marshal.Copy(bytes, 0, ptr, bytes.Length);
-            Marshal.WriteInt16(ptr + bytes.Length, 0);
-            SetClipboardData(cfUniCodeText, ptr);
-            CloseClipboard();
+            ClickKey(VirtualKeyCode.ESCAPE);
+            return unfinishedCards;
         }
     }
 }

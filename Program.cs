@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 // choose option
 var option = ProgramHandler.AskOptions();
-var validOptions = new List<string> {"1", "2", "3"};
+var validOptions = new List<string> {"1", "2", "3", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -20,7 +20,7 @@ var geminiDictionaryConvertor =
 
 while (!validOptions.Any(x=>x.Equals(option)))
 {
-    option = ProgramHandler.AskOptions();
+    option = Console.ReadKey(true).KeyChar.ToString();
 }
 
 if (option.Equals("1"))
@@ -31,7 +31,7 @@ if (option.Equals("1"))
     await ProgramHandler.Introduction(introduction, geminiDictionaryConvertor);
 }
 
-while (!option.Equals("3"))
+while (!option.Equals("\u001b"))
 {
     switch (option)
     {
@@ -72,10 +72,22 @@ while (!option.Equals("3"))
             }
             ProgramHandler.StartAddingNotes(notes);
             break;
+        case "3":
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("Give me the text if you want me to apply FILTER:");
+            var filter = Console.ReadLine();
+            
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("How many record do you want me to CHECK?");
+            var recordCount = Int32.Parse(Console.ReadLine()!);
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("How many record do you want me to SKIP?");
+            var skips = Int32.Parse(Console.ReadLine()!);
+            ProgramHandler.SeparateFrontAndPronunciation(filter!, recordCount, skips);
+            break;
     }
     
     // choose option
     option = ProgramHandler.AskOptions();
 }
-
-
