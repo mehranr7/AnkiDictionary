@@ -170,6 +170,8 @@ namespace AnkiDictionary
 
             // Ctrl + Enter
             CtrlEnter();
+            
+            Console.WriteLine(note.Text+" added.");
 
         }
         
@@ -191,14 +193,17 @@ namespace AnkiDictionary
             return wasFound;
         }
         
-        public static Dictionary<string,string> StartSeparatingParts(string filter, int recordsCount, int skips)
+        public static Dictionary<string,string> StartSeparatingParts(int recordsCount, int skips, string? filter = null)
         {
             var unfinishedCards = new Dictionary<string,string>();
 
             // Apply filter
             LongPause();
-            WriteText(filter);
-            ClickKey(VirtualKeyCode.RETURN);
+            if (filter != null)
+            {
+                WriteText(filter);
+                ClickKey(VirtualKeyCode.RETURN);
+            }
             ClickKey(VirtualKeyCode.TAB);
             for (var i = 0; i < recordsCount; i++)
             {
@@ -229,7 +234,8 @@ namespace AnkiDictionary
                 CtrlC();
                 var front = ClipboardManager.GetText();
                 var actualFront = front;
-                if (front.Contains('['))
+                var needFrontChange = front.Contains('[');
+                if (needFrontChange)
                 {
                     var splitFront = front.Split('[');
                     actualFront = splitFront[0];
@@ -271,8 +277,10 @@ namespace AnkiDictionary
                 CtrlShiftX();
                 CtrlA();
                 CtrlC();
+                CtrlShiftX();
                 var definitionText = ClipboardManager.GetText();
-                if (definitionText.Contains("<img"))
+                var needImageChange = definitionText.Contains("<img");
+                if (needImageChange)
                 {
                     var startDef = definitionText.IndexOf("<img", StringComparison.Ordinal);
                     var endDef = definitionText.IndexOf(">", startDef, StringComparison.Ordinal);
@@ -282,16 +290,21 @@ namespace AnkiDictionary
                     var image = definitionText.Substring(startDef, endDef-startDef);
 
                     // fix
+                    CtrlA();
                     WriteText(actualDef);
-                    CtrlShiftX();
                     ClickKey(VirtualKeyCode.TAB);
                     CtrlShiftX();
+                    CtrlA();
                     WriteText(image);
                     CtrlShiftX();
 
                 }
+                else
+                {
+                    ClickKey(VirtualKeyCode.TAB);
+                }
 
-                for (var j = 0; j < 8; j++)
+                for (var j = 0; j < 7; j++)
                 {
                     ClickKey(VirtualKeyCode.TAB);
                 }
@@ -315,22 +328,31 @@ namespace AnkiDictionary
                     
                 ClickKey(VirtualKeyCode.ESCAPE);
 
+                Console.WriteLine($"{i+1}. {actualFront}\tFront:{needFrontChange}\tImage:{needImageChange}\tInfo:{needInfo}");
+
             }
             
             ClickKey(VirtualKeyCode.ESCAPE);
+            Console.WriteLine("\n____________\n");
             return unfinishedCards;
         }
 
         public static void UpdateNotes(List<AnkiNote> ankiNotes)
         {
             var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
-
+            var remaining = dictionary.Count;
             foreach (var item in dictionary)
             {
-                Console.WriteLine(item.Key);
-
                 var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
-                if (note == null) continue;
+                
+                if (note == null)
+                {
+                    Console.WriteLine($"{item.Key}\tnot found\trem:{remaining}");
+                    remaining--;
+                    continue;
+                }
+                Console.WriteLine($"{item.Key}\tfounded\trem:{remaining}");
+                remaining--;
 
                 // find the note
                 LongPause();
@@ -403,7 +425,7 @@ namespace AnkiDictionary
                 dictionary.Remove(item.Key);
                 DictionaryJsonUtility.ExportDictionaryToJson(dictionary);
             }
-
+            
             ClickKey(VirtualKeyCode.ESCAPE);
         }
     }

@@ -41,6 +41,8 @@ namespace AnkiDictionary
             SetClipboardData(cfUnicodeText, ptr);
             CloseClipboard();
 
+            Console.WriteLine(text+" Copied.");
+            Console.WriteLine("\n____________\n");
             return true;
         }
 

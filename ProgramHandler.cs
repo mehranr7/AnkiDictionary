@@ -77,11 +77,11 @@
                 Console.Write(".");
                 ankiWindow = WindowsManager.GetTitleThatContains("- anki");
             }
-            Console.WriteLine("\n Founded. Please do Not close it.");
+            Console.WriteLine("\nFounded. Please do Not close it.");
             return ankiWindow;
         }
 
-        public static void SeparateImageAndPronunciation(string filter, int recordCount, int skips)
+        public static void SeparateImageAndPronunciation(int recordCount, int skips, string? filter = null)
         {
             var ankiWindow = FindAnkiWindow();
             
@@ -93,20 +93,36 @@
                 Console.Write(".");
                 isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
             }
-            Console.WriteLine("\n Focused. Please be patient until it finish.");
+            Console.WriteLine("\nFocused. Please be patient until it finish.");
+            Console.WriteLine("\n____________\n");
 
-            var unfinishedCards = ControllerSimulator.StartSeparatingParts(filter, recordCount, skips);
+            var unfinishedCards = ControllerSimulator.StartSeparatingParts(recordCount, skips, filter);
             var previousDictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
 
             var frontList = "";
-            foreach (var card in unfinishedCards)
+            
+            foreach (var card in previousDictionary)
             {
-                if(!previousDictionary.ContainsKey(card.Key))
-                    previousDictionary.Add(card.Key,card.Value);
                 frontList += card.Key+", ";
             }
 
-            DictionaryJsonUtility.ExportDictionaryToJson(previousDictionary);
+            if (unfinishedCards.Count > 0)
+            {
+                foreach (var card in unfinishedCards)
+                {
+                    if (!previousDictionary.ContainsKey(card.Key))
+                    {
+                        previousDictionary.Add(card.Key,card.Value);
+                        frontList += card.Key+", ";
+                    }
+                }
+                DictionaryJsonUtility.ExportDictionaryToJson(previousDictionary);
+            }
+
+            if (frontList.Length > 2)
+            {
+                frontList = frontList.Substring(0, frontList.Length - 2);
+            }
 
             ClipboardManager.SetText(frontList);
         }

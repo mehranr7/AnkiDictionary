@@ -46,6 +46,9 @@ while (!option.Equals("\u001b"))
                 words = Console.ReadLine();
             }
             await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
+            
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
 
             break;
 
@@ -72,13 +75,18 @@ while (!option.Equals("\u001b"))
                 break;
             }
             ProgramHandler.StartAddingNotes(notes);
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
+
             break;
 
         case "3":
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Give me the text if you want me to apply FILTER:");
             var filter = Console.ReadLine();
-            
+            if (filter == "")
+                filter = null;
+
             Console.WriteLine("\n____________\n");
             Console.WriteLine("How many record do you want me to CHECK?");
             var recordCount = Int32.Parse(Console.ReadLine()!);
@@ -86,7 +94,10 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("\n____________\n");
             Console.WriteLine("How many record do you want me to SKIP?");
             var skips = Int32.Parse(Console.ReadLine()!);
-            ProgramHandler.SeparateImageAndPronunciation(filter!, recordCount, skips);
+            ProgramHandler.SeparateImageAndPronunciation(recordCount, skips, filter);
+
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
             break;
 
         case "4":
@@ -112,6 +123,9 @@ while (!option.Equals("\u001b"))
                 break;
             }
             ProgramHandler.UpdateNotes(updateNotes);
+
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
             break;
     }
     

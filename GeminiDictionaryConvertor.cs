@@ -83,6 +83,5 @@ consider when I separate a word or a group of words using comma the answer must 
             var ankiNotes = StringToAnkiNotes(response);
             return ankiNotes;
         }
-
     }
 }

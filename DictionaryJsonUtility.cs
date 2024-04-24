@@ -9,7 +9,6 @@ namespace AnkiDictionary
         {
             string json = JsonConvert.SerializeObject(dictionary);
             File.WriteAllText(filePath, json);
-            Console.WriteLine("Dictionary exported to JSON successfully.");
         }
 
         public static Dictionary<string, string> ImportDictionaryFromJson(string filePath="dictionary.json")
