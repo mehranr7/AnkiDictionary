@@ -239,140 +239,153 @@ namespace AnkiDictionary
             ClickKey(VirtualKeyCode.TAB);
             for (var i = 0; i < recordsCount; i++)
             {
-                Console.Write(i+1+".");
-                // Select record
-                if (i == 0)
-                {
-                    for (var j = 0; j < skips; j++)
+                try {
+                    Console.Write(i+1+".");
+                    // Select record
+                    if (i == 0)
+                    {
+                        for (var j = 0; j < skips; j++)
+                        {
+                            ClickKey(VirtualKeyCode.DOWN);
+                            ClickKey(VirtualKeyCode.DOWN);
+                        }
+                    }
+                    else
                     {
                         ClickKey(VirtualKeyCode.DOWN);
                         ClickKey(VirtualKeyCode.DOWN);
                     }
-                }
-                else
-                {
-                    ClickKey(VirtualKeyCode.DOWN);
-                    ClickKey(VirtualKeyCode.DOWN);
-                }
 
-                
-                for (var j = 0; j < 4; j++)
-                {
-                    ClickKey(VirtualKeyCode.TAB);
-                }
+                    
+                    for (var j = 0; j < 4; j++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
 
-                // Read Front field                     
-                CtrlA();
-                CtrlC();
-                var front = ClipboardManager.GetText();
-                var actualFront = front;
-                var needFrontChange = front.Contains('[');
-                if (needFrontChange)
-                {
-                    var splitFront = front.Split('[');
-                    actualFront = splitFront[0];
-                    actualFront = FixFrontText(actualFront);
-                    var sound = "["+splitFront[1];
+                    // Read Front field                     
+                    CtrlA();
+                    CtrlC();
+                    var front = ClipboardManager.GetText();
+                    var actualFront = front;
+                    var needFrontChange = front.Contains('[');
+                    if (needFrontChange)
+                    {
+                        var splitFront = front.Split('[');
+                        actualFront = splitFront[0];
+                        actualFront = FixFrontText(actualFront);
+                        var sound = "["+splitFront[1];
 
-                    // edit
-                    WriteText(actualFront);
+                        // edit
+                        WriteText(actualFront);
+                        ClickKey(VirtualKeyCode.TAB);
+                        CtrlA();
+                        WriteText(sound);
+                    }
+                    else
+                    {
+                        actualFront = FixFrontText(actualFront);
+                        WriteText(actualFront);
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+                    Console.Write($"{actualFront}\tFront:{needFrontChange}");
+
+                    // check TypeGroup
                     ClickKey(VirtualKeyCode.TAB);
                     CtrlA();
-                    WriteText(sound);
-                }
-                else
-                {
-                    actualFront = FixFrontText(actualFront);
-                    WriteText(actualFront);
-                    ClickKey(VirtualKeyCode.TAB);
-                }
-                Console.Write($"{actualFront}\tFront:{needFrontChange}");
-
-                // check TypeGroup
-                ClickKey(VirtualKeyCode.TAB);
-                CtrlA();
-                ClickKey(VirtualKeyCode.RIGHT);
-                ClickKey(VirtualKeyCode.VK_A);
-                CtrlA();
-                CtrlC();
-
-                var needInfo = false;
-                var typeGroup = ClipboardManager.GetText();
-                if (typeGroup.ToLower().Equals("a"))
-                    needInfo = true;
-                
-                Console.Write($"\tInfo:{needInfo}");
-                
-                ClickKey(VirtualKeyCode.RIGHT);
-                ClickKey(VirtualKeyCode.BACK);
-
-                // check definition if contains image
-                ClickKey(VirtualKeyCode.TAB);
-                ClickKey(VirtualKeyCode.TAB);
-                CtrlShiftX();
-                CtrlA();
-                CtrlC();
-                CtrlShiftX();
-                var definitionText = ClipboardManager.GetText();
-                var needImageChange = definitionText.Contains("<img");
-
-                Console.Write($"\tImage:{needImageChange}");
-
-                if (needImageChange)
-                {
-                    var startDef = definitionText.IndexOf("<img", StringComparison.Ordinal);
-                    var endDef = definitionText.IndexOf(">", startDef, StringComparison.Ordinal);
-                    var actualDef = definitionText.Substring(0, startDef);
-                    actualDef = actualDef.Replace("<br>", "");
-                    actualDef = actualDef.Replace("<br/>", "");
-                    actualDef = actualDef.Replace("</br>", "");
-                    var image = definitionText.Substring(startDef, endDef-startDef);
-
-                    // fix
+                    ClickKey(VirtualKeyCode.RIGHT);
+                    ClickKey(VirtualKeyCode.VK_A);
                     CtrlA();
-                    WriteText(actualDef);
+                    CtrlC();
+
+                    var needInfo = false;
+                    var typeGroup = ClipboardManager.GetText();
+                    if (typeGroup.ToLower().Equals("a"))
+                        needInfo = true;
+                    
+                    Console.Write($"\tInfo:{needInfo}");
+                    
+                    ClickKey(VirtualKeyCode.RIGHT);
+                    ClickKey(VirtualKeyCode.BACK);
+
+                    // check definition if contains image
+                    ClickKey(VirtualKeyCode.TAB);
                     ClickKey(VirtualKeyCode.TAB);
                     CtrlShiftX();
                     CtrlA();
-                    WriteText(image);
+                    CtrlC();
                     CtrlShiftX();
+                    var definitionText = ClipboardManager.GetText();
+                    var needImageChange = definitionText.Contains("<img");
 
-                }
-                else
-                {
-                    ClickKey(VirtualKeyCode.TAB);
-                }
+                    Console.Write($"\tImage:{needImageChange}");
 
-                for (var j = 0; j < 7; j++)
-                {
+                    if (needImageChange)
+                    {
+                        var startDef = definitionText.IndexOf("<img", StringComparison.Ordinal);
+                        var endDef = definitionText.IndexOf(">", startDef, StringComparison.Ordinal);
+                        var actualDef = definitionText.Substring(0, startDef);
+                        actualDef = actualDef.Replace("<br>", "");
+                        actualDef = actualDef.Replace("<br/>", "");
+                        actualDef = actualDef.Replace("</br>", "");
+                        var image = definitionText.Substring(startDef, endDef-startDef);
+
+                        // fix
+                        CtrlA();
+                        WriteText(actualDef);
+                        ClickKey(VirtualKeyCode.TAB);
+                        CtrlShiftX();
+                        CtrlA();
+                        WriteText(image);
+                        CtrlShiftX();
+
+                    }
+                    else
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+
+                    for (var j = 0; j < 7; j++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+                    
+                    Console.WriteLine("\t✔");
+
+                    if (!needInfo || missedDictionary.ContainsKey(actualFront)) continue;
+                    CtrlShiftI();
                     ClickKey(VirtualKeyCode.TAB);
+                    CtrlA();
+                    CtrlC();
+                    var cardInfo = ClipboardManager.GetText();
+                    var start = cardInfo.IndexOf("Note ID", StringComparison.Ordinal);
+                    var end = cardInfo.IndexOf("\n", start, StringComparison.Ordinal);
+                    var noteId = cardInfo.Substring(start, end-start);
+                        
+                    noteId = noteId.Replace("Note ID", "");
+                    noteId = noteId.Replace("\n", "");
+                    noteId = noteId.Replace("\r", "");
+                    noteId = noteId.Replace("\t", "");
+                    
+                    missedDictionary.Add(actualFront, noteId);
+
+                    frontList += ", "+actualFront;
+                        
+                    ClickKey(VirtualKeyCode.ESCAPE);
+                
+                    ClipboardManager.SetText(frontList);
+                    DictionaryJsonUtility.ExportDictionaryToJson(missedDictionary);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    Console.WriteLine("\n____________\n");
+                    Console.WriteLine("Restarting");
+                    Console.WriteLine("\n____________\n");
+                    ClickKey(VirtualKeyCode.ESCAPE);
+                    ProgramHandler.SeparateImageAndPronunciation(recordsCount - i + 1,skips + i + 1, filter);
+                    return;
                 }
                 
-                Console.WriteLine("\t✔");
-
-                if (!needInfo || missedDictionary.ContainsKey(actualFront)) continue;
-                CtrlShiftI();
-                ClickKey(VirtualKeyCode.TAB);
-                CtrlA();
-                CtrlC();
-                var cardInfo = ClipboardManager.GetText();
-                var start = cardInfo.IndexOf("Note ID", StringComparison.Ordinal);
-                var end = cardInfo.IndexOf("\n", start, StringComparison.Ordinal);
-                var noteId = cardInfo.Substring(start, end-start);
-                    
-                noteId = noteId.Replace("Note ID", "");
-                noteId = noteId.Replace("\n", "");
-                noteId = noteId.Replace("\r", "");
-                noteId = noteId.Replace("\t", "");
-                
-                missedDictionary.Add(actualFront, noteId);
-
-                frontList += ", "+actualFront;
-                    
-                ClickKey(VirtualKeyCode.ESCAPE);
-            
-                ClipboardManager.SetText(frontList);
-                DictionaryJsonUtility.ExportDictionaryToJson(missedDictionary);
             }
             
             ClickKey(VirtualKeyCode.ESCAPE);
