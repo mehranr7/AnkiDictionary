@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using WindowsInput;
 using WindowsInput.Native;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace AnkiDictionary
 {
@@ -64,6 +65,15 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
             ShortPause();
             ClickKey(VirtualKeyCode.VK_C);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
+            ShortPause();
+        }
+        
+        private static void CtrlDelete()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            ClickKey(VirtualKeyCode.DELETE);
             Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
         }
@@ -226,9 +236,7 @@ namespace AnkiDictionary
             {
                 frontList = frontList.Substring(1, frontList.Length - 3);
             }
-
-            Console.WriteLine(frontList);
-
+            
             // Apply filter
             LongPause();
             if (filter != null)
@@ -262,10 +270,45 @@ namespace AnkiDictionary
                         ClickKey(VirtualKeyCode.TAB);
                     }
 
+                    // check duplicate
+                    CtrlA();
+                    ClickKey(VirtualKeyCode.RIGHT);
+                    ClickKey(VirtualKeyCode.VK_A);
+                    ClickKey(VirtualKeyCode.VK_A);
+                    CtrlA();
+                    CtrlC();
+
+                    var front = "";
+                    
+                    var duplicateCheckerText = ClipboardManager.GetText();
+                    if (!duplicateCheckerText.ToLower().EndsWith("aa"))
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                        CtrlA();
+                        CtrlC();
+                        front = ClipboardManager.GetText();
+                        Console.Write($"{front}\tDuplicate");
+
+                        for (var j = 0; j < 12; j++)
+                        {
+                            ClickKey(VirtualKeyCode.TAB);
+                        }
+                        CtrlDelete();
+                        Console.Write("\t removed");
+                        Console.WriteLine("\t✔");
+                        continue;
+                    }
+                    else
+                    {
+                        ClickKey(VirtualKeyCode.BACK);
+                        ClickKey(VirtualKeyCode.BACK);
+                        front = duplicateCheckerText.Substring(0, duplicateCheckerText.Length - 2);
+                    }
+
+
                     // Read Front field                     
                     CtrlA();
                     CtrlC();
-                    var front = ClipboardManager.GetText();
                     var actualFront = front;
                     var needFrontChange = front.Contains('[');
                     if (needFrontChange)
@@ -287,6 +330,7 @@ namespace AnkiDictionary
                         WriteText(actualFront);
                         ClickKey(VirtualKeyCode.TAB);
                     }
+
                     Console.Write($"{actualFront}\tFront:{needFrontChange}");
 
                     // check TypeGroup
@@ -327,7 +371,7 @@ namespace AnkiDictionary
                         actualDef = actualDef.Replace("<br>", "");
                         actualDef = actualDef.Replace("<br/>", "");
                         actualDef = actualDef.Replace("</br>", "");
-                        var image = definitionText.Substring(startDef, endDef-startDef);
+                        var image = definitionText.Substring(startDef, endDef-startDef+1);
 
                         // fix
                         CtrlA();
@@ -372,7 +416,7 @@ namespace AnkiDictionary
                         
                     ClickKey(VirtualKeyCode.ESCAPE);
                 
-                    ClipboardManager.SetText(frontList);
+                    ClipboardManager.SetText(frontList, false);
                     DictionaryJsonUtility.ExportDictionaryToJson(missedDictionary);
                 }
                 catch (Exception e)
