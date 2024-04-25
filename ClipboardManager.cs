@@ -28,7 +28,7 @@ namespace AnkiDictionary
 
         private const uint cfUnicodeText = 13;
 
-        public static bool SetText(string text)
+        public static bool SetText(string text, bool shouldPrint = true)
         {
             if (!OpenClipboard(IntPtr.Zero))
                 return false;
@@ -41,6 +41,7 @@ namespace AnkiDictionary
             SetClipboardData(cfUnicodeText, ptr);
             CloseClipboard();
 
+            if (!shouldPrint) return true;
             Console.WriteLine(text+" Copied.");
             Console.WriteLine("\n____________\n");
             return true;

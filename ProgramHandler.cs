@@ -9,6 +9,7 @@
             Console.WriteLine("2. Give me note(s) to add them to Anki");
             Console.WriteLine("3. Separate Image and Pronunciation fields and validation");
             Console.WriteLine("4. Update dictionary items using JSON");
+            Console.WriteLine("5. Export cards which need information");
             Console.WriteLine("Esc. Exit\n");
             return Console.ReadKey(true).KeyChar.ToString();
         }
@@ -96,35 +97,7 @@
             Console.WriteLine("\nFocused. Please be patient until it finish.");
             Console.WriteLine("\n____________\n");
 
-            var unfinishedCards = ControllerSimulator.StartSeparatingParts(recordCount, skips, filter);
-            var previousDictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
-
-            var frontList = "";
-            
-            foreach (var card in previousDictionary)
-            {
-                frontList += card.Key+", ";
-            }
-
-            if (unfinishedCards.Count > 0)
-            {
-                foreach (var card in unfinishedCards)
-                {
-                    if (!previousDictionary.ContainsKey(card.Key))
-                    {
-                        previousDictionary.Add(card.Key,card.Value);
-                        frontList += card.Key+", ";
-                    }
-                }
-                DictionaryJsonUtility.ExportDictionaryToJson(previousDictionary);
-            }
-
-            if (frontList.Length > 2)
-            {
-                frontList = frontList.Substring(0, frontList.Length - 2);
-            }
-
-            ClipboardManager.SetText(frontList);
+            ControllerSimulator.StartSeparatingParts(recordCount, skips, filter);
         }
 
         public static void UpdateNotes(List<AnkiNote> ankiNotes)

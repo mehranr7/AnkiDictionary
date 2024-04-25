@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 // choose option
 var option = ProgramHandler.AskOptions();
-var validOptions = new List<string> {"1", "2", "3", "4", "\u001b"};
+var validOptions = new List<string> {"1", "2", "3", "4", "5", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -120,10 +120,28 @@ while (!option.Equals("\u001b"))
             {
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
+                Console.WriteLine("\n____________\n");
                 break;
             }
             ProgramHandler.UpdateNotes(updateNotes);
 
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
+            break;
+        case "5":
+            var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
+            var cardsInNeed = "";
+            foreach (var card in dictionary)
+            {
+                cardsInNeed += card.Key + ", ";
+            }
+            if (cardsInNeed.Length > 2)
+            {
+                cardsInNeed = cardsInNeed.Substring(0, cardsInNeed.Length - 2);
+            }
+
+            ClipboardManager.SetText(cardsInNeed);
+            
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
             break;
