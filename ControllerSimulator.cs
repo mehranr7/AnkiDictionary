@@ -301,14 +301,11 @@ namespace AnkiDictionary
                     else
                     {
                         ClickKey(VirtualKeyCode.BACK);
-                        ClickKey(VirtualKeyCode.BACK);
                         front = duplicateCheckerText.Substring(0, duplicateCheckerText.Length - 2);
                     }
 
 
-                    // Read Front field                     
-                    CtrlA();
-                    CtrlC();
+                    // Read Front field
                     var actualFront = front;
                     var needFrontChange = front.Contains('[');
                     if (needFrontChange)
@@ -450,6 +447,12 @@ namespace AnkiDictionary
                     remaining--;
                     continue;
                 }
+                
+                Console.WriteLine($"note:{note.Text} | dic:{item.Key}");
+                var checker = FixFrontText(note.Text).Equals(FixFrontText(item.Key));
+                if(!checker)
+                    continue;
+
                 Console.WriteLine($"{item.Key}\tfounded\trem:{remaining}");
                 remaining--;
 
@@ -469,9 +472,27 @@ namespace AnkiDictionary
 
                 // update data
 
-                // Front
+                // check duplicate
                 CtrlA();
-                WriteText(FixFrontText(note.Text));
+                CtrlC();
+                var duplicateCheckerText = ClipboardManager.GetText();
+                if (!duplicateCheckerText.ToLower().Equals(item.Key.ToLower()))
+                {
+                    Console.Write($"{note.Text}\tDuplicate");
+
+                    for (var j = 0; j < 12; j++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+                    Console.Write("\tleaved");
+                    Console.WriteLine("\t✔");
+                    continue;
+                }
+                if(duplicateCheckerText.ToLower().Contains("nid:"))
+                    continue;
+
+                // Front
+                WriteText(FixFrontText(item.Key));
                 ClickKey(VirtualKeyCode.TAB);
         
                 // Pronunciation
