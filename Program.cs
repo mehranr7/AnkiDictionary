@@ -139,10 +139,10 @@ while (!option.Equals("\u001b"))
             {
                 cardsInNeed = cardsInNeed.Substring(0, cardsInNeed.Length - 2);
             }
-
+            
             ClipboardManager.SetText(cardsInNeed);
             
-            Console.WriteLine("Done.");
+            Console.WriteLine($"{dictionary.Count} words/phrases copied.");
             Console.WriteLine("\n____________\n");
             break;
     }

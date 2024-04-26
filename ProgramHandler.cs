@@ -44,17 +44,7 @@
             Console.ReadKey();
             
             // Going for Anki window
-            var ankiWindow = FindAnkiWindow();
-
-            Console.WriteLine("\n____________\n");
-            Console.Write("Focusing on Anki and Opening Add new window.");
-            var isAnkiOpened = ControllerSimulator.OpenAddNewWindow(ankiWindow);
-            while (!isAnkiOpened)
-            {
-                Console.Write(".");
-                isAnkiOpened = ControllerSimulator.OpenAddNewWindow(ankiWindow);
-            }
-            Console.WriteLine("\n Focused. Please be patient until it finish.");
+            ControllerSimulator.OpenAddNewWindow();
             
             // Adding
             Console.WriteLine("\n____________\n");
@@ -64,58 +54,18 @@
                 Console.WriteLine(note.Text);
                 ControllerSimulator.AddNewNote(note);
             }
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Done.");
         }
 
-        private static string FindAnkiWindow()
-        {
-            Console.WriteLine("\n____________\n");
-            Console.Write("Looking for Anki window.");
-            var ankiWindow = WindowsManager.GetTitleThatContains("- anki");
-            while (ankiWindow==null)
-            {
-                Console.Write(".");
-                ankiWindow = WindowsManager.GetTitleThatContains("- anki");
-            }
-            Console.WriteLine("\nFounded. Please do Not close it.");
-            return ankiWindow;
-        }
 
         public static void SeparateImageAndPronunciation(int recordCount, int skips, string? filter = null)
         {
-            var ankiWindow = FindAnkiWindow();
-            
-            Console.WriteLine("\n____________\n");
-            Console.Write("Focusing on Anki and Opening Browse window.");
-            var isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
-            while (!isAnkiOpened)
-            {
-                Console.Write(".");
-                isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
-            }
-            Console.WriteLine("\nFocused. Please be patient until it finish.");
-            Console.WriteLine("\n____________\n");
-
+            ControllerSimulator.OpenBrowseWindow();
             ControllerSimulator.StartSeparatingParts(recordCount, skips, filter);
         }
 
         public static void UpdateNotes(List<AnkiNote> ankiNotes)
         {
-            var ankiWindow = FindAnkiWindow();
-            
-            Console.WriteLine("\n____________\n");
-            Console.Write("Focusing on Anki and Opening Browse window.");
-            var isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
-            while (!isAnkiOpened)
-            {
-                Console.Write(".");
-                isAnkiOpened = ControllerSimulator.OpenBrowseWindow(ankiWindow);
-            }
-            Console.WriteLine("\n Focused. Please be patient until it finish.");
-
-            ControllerSimulator.OpenBrowseWindow(ankiWindow);
-
+            ControllerSimulator.OpenBrowseWindow();
             ControllerSimulator.UpdateNotes(ankiNotes);
         }
     }

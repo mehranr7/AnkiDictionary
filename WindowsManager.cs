@@ -34,9 +34,9 @@ namespace AnkiDictionary
 
         public static string? GetTitleThatContains(string text)
         {
-            var windowTitles = WindowsManager.GetOpenWindowTitles();
+            var windowTitles = GetOpenWindowTitles();
 
-            return windowTitles.FirstOrDefault(title => title.ToLower().Contains(text));
+            return windowTitles.FirstOrDefault(title => title.ToLower().Contains(text.ToLower()));
         }
 
         public static IntPtr GetWindow(string windowTitle)
@@ -63,6 +63,69 @@ namespace AnkiDictionary
             }
             else
                 return false;
+        }
+        
+        public static void WaitUntilTheWindowAppeared(string windowsName, string printTitle = "", bool showLog = false)
+        {
+            if (printTitle.Equals(""))
+                printTitle = windowsName;
+            if (showLog)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.Write($"Looking for {printTitle} window.");
+            }
+            var window = GetTitleThatContains(windowsName);
+            while (window==null)
+            {
+                Console.Write(".");
+                ControllerSimulator.ShortPause();
+                window = GetTitleThatContains(windowsName);
+            }
+            if (showLog)
+            {
+                Console.WriteLine("\nFounded. Please do Not close it.");
+                Console.WriteLine("\n____________\n");
+
+                Console.WriteLine("\n____________\n");
+                Console.Write($"Focusing on {printTitle} and Opening Browse window.");
+            }
+            
+            var wasFound = FocusOn(window);
+            while (!wasFound)
+            {
+                Console.Write(".");
+                ControllerSimulator.ShortPause();
+                wasFound = FocusOn(window);
+            }
+            if (showLog)
+            {
+                Console.WriteLine("\nFocused. Please be patient until it finish.");
+                Console.WriteLine("\n____________\n");
+            }
+        }
+        
+        public static void WaitUntilTheWindowClosed(string windowsName, string printTitle = "", bool showLog = false)
+        {
+            if (printTitle.Equals(""))
+                printTitle = windowsName;
+            
+            if (showLog)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.Write($"Waiting for {printTitle} window to close.");
+            }
+            var window = GetTitleThatContains(windowsName);
+            while (window!=null)
+            {
+                Console.Write(".");
+                ControllerSimulator.ShortPause();
+                window = GetTitleThatContains(windowsName);
+            }
+            if (showLog)
+            {
+                Console.WriteLine("\nClosed. Please do Not close it.");
+                Console.WriteLine("\n____________\n");
+            }
         }
     }
 }

@@ -18,12 +18,12 @@ namespace AnkiDictionary
         private static readonly int ShortPauseValue = Int32.Parse(Config["Speed:shortPause"]!);
         private static readonly int LongPauseValue = Int32.Parse(Config["Speed:longPause"]!);
 
-        private static void ShortPause()
+        public static void ShortPause()
         {
             Thread.Sleep(ShortPauseValue);
         }
 
-        private static void LongPause()
+        public static void LongPause()
         {
             Thread.Sleep(LongPauseValue);
         }
@@ -149,18 +149,12 @@ namespace AnkiDictionary
             // Pronunciation
             // Ctrl + T
             CtrlT();
+            WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
             WriteText(FixFrontText(note.Text));
 
             // Ctrl + Enter
             CtrlEnter();
-
-            var hWnd = WindowsManager.GetWindow("AwesomeTTS: Add TTS Audio to Note");
-            while (hWnd != IntPtr.Zero)
-            {
-                Thread.Sleep(500);
-                hWnd = WindowsManager.GetWindow("AwesomeTTS: Add TTS Audio to Note");
-            }
-
+            WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
             ClickKey(VirtualKeyCode.TAB);
             
             // Type
@@ -206,22 +200,18 @@ namespace AnkiDictionary
 
         }
         
-        public static bool OpenAddNewWindow(string ankiWindowTitle)
+        public static void OpenAddNewWindow()
         {
-            var wasFound = WindowsManager.FocusOn(ankiWindowTitle);
-            if (!wasFound) return wasFound;
-            Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_A);
+            WindowsManager.WaitUntilTheWindowAppeared("- anki", "Anki");
             LongPause();
-            return wasFound;
+            Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_A);
         }
         
-        public static bool OpenBrowseWindow(string ankiWindowTitle)
+        public static void OpenBrowseWindow()
         {
-            var wasFound = WindowsManager.FocusOn(ankiWindowTitle);
-            if (!wasFound) return wasFound;
-            Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_B);
+            WindowsManager.WaitUntilTheWindowAppeared("- anki", "Anki");
             LongPause();
-            return wasFound;
+            Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_B);
         }
         
         public static void StartSeparatingParts(int recordsCount, int skips, string? filter = null)
@@ -255,12 +245,10 @@ namespace AnkiDictionary
                         for (var j = 0; j < skips; j++)
                         {
                             ClickKey(VirtualKeyCode.DOWN);
-                            ClickKey(VirtualKeyCode.DOWN);
                         }
                     }
                     else
                     {
-                        ClickKey(VirtualKeyCode.DOWN);
                         ClickKey(VirtualKeyCode.DOWN);
                     }
 
@@ -293,8 +281,7 @@ namespace AnkiDictionary
                         {
                             ClickKey(VirtualKeyCode.TAB);
                         }
-                        CtrlDelete();
-                        Console.Write("\t removed");
+                        Console.Write("\tleaved");
                         Console.WriteLine("\t✔");
                         continue;
                     }
@@ -394,6 +381,7 @@ namespace AnkiDictionary
 
                     if (!needInfo || missedDictionary.ContainsKey(actualFront)) continue;
                     CtrlShiftI();
+                    WindowsManager.WaitUntilTheWindowAppeared("Current Card", "CardInfo");
                     ClickKey(VirtualKeyCode.TAB);
                     CtrlA();
                     CtrlC();
@@ -412,6 +400,7 @@ namespace AnkiDictionary
                     frontList += ", "+actualFront;
                         
                     ClickKey(VirtualKeyCode.ESCAPE);
+                    WindowsManager.WaitUntilTheWindowClosed("Current Card", "CardInfo");
                 
                     ClipboardManager.SetText(frontList, false);
                     DictionaryJsonUtility.ExportDictionaryToJson(missedDictionary);
@@ -437,24 +426,18 @@ namespace AnkiDictionary
         {
             var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
             var remaining = dictionary.Count;
+                var counter = 0;
             foreach (var item in dictionary)
             {
                 var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
-                
                 if (note == null)
-                {
-                    Console.WriteLine($"{item.Key}\tnot found\trem:{remaining}");
-                    remaining--;
                     continue;
-                }
-                
-                Console.WriteLine($"note:{note.Text} | dic:{item.Key}");
                 var checker = FixFrontText(note.Text).Equals(FixFrontText(item.Key));
                 if(!checker)
                     continue;
-
-                Console.WriteLine($"{item.Key}\tfounded\trem:{remaining}");
-                remaining--;
+                
+                counter++;
+                Console.Write($"{counter}.{item.Key}");
 
                 // find the note
                 LongPause();
@@ -476,20 +459,23 @@ namespace AnkiDictionary
                 CtrlA();
                 CtrlC();
                 var duplicateCheckerText = ClipboardManager.GetText();
+
+                if (duplicateCheckerText.ToLower().Contains("nid:"))
+                {
+                    Console.WriteLine("\t✔\twrong nid");
+                    continue;
+                }
+
                 if (!duplicateCheckerText.ToLower().Equals(item.Key.ToLower()))
                 {
-                    Console.Write($"{note.Text}\tDuplicate");
-
+                    
+                    Console.WriteLine("\t✔\tDuplicate");
                     for (var j = 0; j < 12; j++)
                     {
                         ClickKey(VirtualKeyCode.TAB);
                     }
-                    Console.Write("\tleaved");
-                    Console.WriteLine("\t✔");
                     continue;
                 }
-                if(duplicateCheckerText.ToLower().Contains("nid:"))
-                    continue;
 
                 // Front
                 WriteText(FixFrontText(item.Key));
@@ -541,9 +527,11 @@ namespace AnkiDictionary
                 CtrlA();
                 WriteText(GetListOf(note.Antonyms));
                 ClickKey(VirtualKeyCode.TAB);
-
+                
+                remaining--;
                 dictionary.Remove(item.Key);
                 DictionaryJsonUtility.ExportDictionaryToJson(dictionary);
+                Console.WriteLine($"\t✔\trem:{remaining}");
             }
             
             ClickKey(VirtualKeyCode.ESCAPE);
