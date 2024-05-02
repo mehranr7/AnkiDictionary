@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Configuration;
 
 // choose option
-var option = ProgramHandler.AskOptions();
+var isAsked = false;
+var option = ProgramHandler.AskOptions(isAsked);
+isAsked = true;
 var validOptions = new List<string> {"1", "2", "3", "4", "5", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
@@ -28,6 +30,7 @@ if (option.Equals("1"))
     Console.WriteLine("\n____________\n");
     Console.WriteLine("Give me an introduction to provide for Gemini or leave it empty to use default.");
     var introduction = Console.ReadLine();
+    Console.WriteLine("\n____________\n");
     await ProgramHandler.Introduction(introduction, geminiDictionaryConvertor);
 }
 
@@ -39,16 +42,19 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Give me your word(s)/phrase(s) to start.");
             var words = Console.ReadLine();
+            Console.WriteLine("\n____________\n");
             while (words is null)
             {
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Give me your word(s)/phrase(s) to start.");
                 words = Console.ReadLine();
+                Console.WriteLine("\n____________\n");
             }
             await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
             
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
+            isAsked = false;
 
             break;
 
@@ -58,11 +64,14 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Give me your note(s) to start. (JSON format)");
             var stringNotes = Console.ReadLine();
+            Console.WriteLine("\n____________\n");
+
             while (stringNotes is null)
             {
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Give me your note(s) to start. (JSON format)");
                 stringNotes = Console.ReadLine();
+                Console.WriteLine("\n____________\n");
             }
             try
             {
@@ -72,11 +81,14 @@ while (!option.Equals("\u001b"))
             {
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
+                Console.WriteLine("\n____________\n");
+                isAsked = false;
                 break;
             }
             ProgramHandler.StartAddingNotes(notes);
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
+            isAsked = false;
 
             break;
 
@@ -90,14 +102,21 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("\n____________\n");
             Console.WriteLine("How many record do you want me to CHECK?");
             var recordCount = Int32.Parse(Console.ReadLine()!);
-
+            
             Console.WriteLine("\n____________\n");
             Console.WriteLine("How many record do you want me to SKIP?");
             var skips = Int32.Parse(Console.ReadLine()!);
-            ProgramHandler.SeparateImageAndPronunciation(recordCount, skips, filter);
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("Do you want to enable double down? (1 means yes anything else means no)");
+            var doubleDown = Console.ReadKey().KeyChar.ToString() == "1";
+            Console.WriteLine("\n____________\n");
+
+            ProgramHandler.SeparateImageAndPronunciation(recordCount, skips, filter, doubleDown);
 
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
+            isAsked = false;
             break;
 
         case "4":
@@ -121,13 +140,16 @@ while (!option.Equals("\u001b"))
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
                 Console.WriteLine("\n____________\n");
+                isAsked = false;
                 break;
             }
             ProgramHandler.UpdateNotes(updateNotes);
 
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
+            isAsked = false;
             break;
+
         case "5":
             var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
             var cardsInNeed = "";
@@ -139,14 +161,26 @@ while (!option.Equals("\u001b"))
             {
                 cardsInNeed = cardsInNeed.Substring(0, cardsInNeed.Length - 2);
             }
+
+            if (cardsInNeed.Length > 0)
+            {
+
+                ClipboardManager.SetText(cardsInNeed);
             
-            ClipboardManager.SetText(cardsInNeed);
-            
-            Console.WriteLine($"{dictionary.Count} words/phrases copied.");
-            Console.WriteLine("\n____________\n");
+                Console.WriteLine($"{dictionary.Count} words/phrases copied.");
+                Console.WriteLine("\n____________\n");
+            }
+            else
+            {
+                Console.WriteLine("There is no words/phrases remaining.");
+                Console.WriteLine("\n____________\n");
+            }
+            isAsked = false;
             break;
+
     }
-    
     // choose option
-    option = ProgramHandler.AskOptions();
+    option = ProgramHandler.AskOptions(isAsked);
+    if(!isAsked)
+        isAsked = true;
 }

@@ -2,15 +2,18 @@
 {
     public static class ProgramHandler
     {
-        public static string AskOptions()
+        public static string AskOptions(bool isAsked)
         {
-            Console.WriteLine("What do you want to do?");
-            Console.WriteLine("1. Ask Gemini then copy note(s)");
-            Console.WriteLine("2. Give me note(s) to add them to Anki");
-            Console.WriteLine("3. Separate Image and Pronunciation fields and validation");
-            Console.WriteLine("4. Update dictionary items using JSON");
-            Console.WriteLine("5. Export cards which need information");
-            Console.WriteLine("Esc. Exit\n");
+            if (!isAsked)
+            {
+                Console.WriteLine("What do you want to do?");
+                Console.WriteLine("1. Ask Gemini then copy note(s)");
+                Console.WriteLine("2. Give me note(s) to add them to Anki");
+                Console.WriteLine("3. Separate Image and Pronunciation fields and validation");
+                Console.WriteLine("4. Update dictionary items using JSON");
+                Console.WriteLine("5. Export cards which need information");
+                Console.WriteLine("Esc. Exit\n");
+            }
             return Console.ReadKey(true).KeyChar.ToString();
         }
         
@@ -57,10 +60,10 @@
         }
 
 
-        public static void SeparateImageAndPronunciation(int recordCount, int skips, string? filter = null)
+        public static void SeparateImageAndPronunciation(int recordCount, int skips, string? filter = null, bool doubleDown = false)
         {
             ControllerSimulator.OpenBrowseWindow();
-            ControllerSimulator.StartSeparatingParts(recordCount, skips, filter);
+            ControllerSimulator.StartSeparatingParts(recordCount, skips, filter, doubleDown);
         }
 
         public static void UpdateNotes(List<AnkiNote> ankiNotes)

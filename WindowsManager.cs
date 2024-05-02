@@ -93,7 +93,8 @@ namespace AnkiDictionary
             var wasFound = FocusOn(window);
             while (!wasFound)
             {
-                Console.Write(".");
+                if (showLog)
+                    Console.Write(".");
                 ControllerSimulator.ShortPause();
                 wasFound = FocusOn(window);
             }
@@ -117,7 +118,8 @@ namespace AnkiDictionary
             var window = GetTitleThatContains(windowsName);
             while (window!=null)
             {
-                Console.Write(".");
+                if (showLog)
+                    Console.Write(".");
                 ControllerSimulator.ShortPause();
                 window = GetTitleThatContains(windowsName);
             }
