@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 // choose option
 var isAsked = false;
+var isIntroductionValid = false;
 var option = ProgramHandler.AskOptions(isAsked);
 isAsked = true;
 var validOptions = new List<string> {"1", "2", "3", "4", "5", "\u001b"};
@@ -27,11 +28,15 @@ while (!validOptions.Any(x=>x.Equals(option)))
 
 if (option.Equals("1"))
 {
-    Console.WriteLine("\n____________\n");
-    Console.WriteLine("Give me an introduction to provide for Gemini or leave it empty to use default.");
-    var introduction = Console.ReadLine();
-    Console.WriteLine("\n____________\n");
-    await ProgramHandler.Introduction(introduction, geminiDictionaryConvertor);
+    while (!isIntroductionValid)
+    {
+        Console.WriteLine("\n____________\n");
+        Console.WriteLine("Give me an introduction to provide for Gemini or leave it empty to use default.");
+        var introduction = Console.ReadLine();
+        await ProgramHandler.Introduction(introduction, geminiDictionaryConvertor);
+        Console.WriteLine("Is the introduction valid? (1 means yes anything else means no)");
+        isIntroductionValid = Console.ReadKey().KeyChar.ToString() == "1";
+    }
 }
 
 while (!option.Equals("\u001b"))
@@ -48,10 +53,10 @@ while (!option.Equals("\u001b"))
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Give me your word(s)/phrase(s) to start.");
                 words = Console.ReadLine();
-                Console.WriteLine("\n____________\n");
             }
-            await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
+            var requestedNotes = await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
             
+            ProgramHandler.StartAddingNotes(requestedNotes);
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
             isAsked = false;

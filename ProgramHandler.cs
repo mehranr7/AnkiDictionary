@@ -20,21 +20,13 @@
         public static async Task Introduction(string? introduction, GeminiDictionaryConvertor geminiDictionaryConvertor)
         {
             // Introduction
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Introducing..");
-            Console.WriteLine(await geminiDictionaryConvertor.MakeAnIntroduction(introduction));
-            Console.WriteLine("Done.");
+            await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
         }
         
         public static async Task<List<AnkiNote>> AskGeminiAnkiNotes(string words, GeminiDictionaryConvertor geminiDictionaryConvertor)
         {
             // Asking
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Asking from Gemini for the dictionary.");
-            var ankiNotes = await geminiDictionaryConvertor.GeminiTransformer(words);
-
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Got it! All notes copied to the clipboard.");
+            var ankiNotes = await geminiDictionaryConvertor.AskUntilCoverList(words);
 
             return ankiNotes;
         }

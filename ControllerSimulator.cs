@@ -16,14 +16,6 @@ namespace AnkiDictionary
         private static readonly int ShortPauseValue = Int32.Parse(Config["Speed:shortPause"]!);
         private static readonly int LongPauseValue = Int32.Parse(Config["Speed:longPause"]!);
 
-        public static string PrintSpaces(int prevWordLength, int maxWordLength)
-        {
-            string spaces = "";
-            for (int i = 0; i < maxWordLength - prevWordLength; i++)
-                spaces += " ";
-            return spaces;
-        }
-
         public static void ShortPause()
         {
             Thread.Sleep(ShortPauseValue);
@@ -119,28 +111,6 @@ namespace AnkiDictionary
             ShortPause();
         }
 
-        private static string FixFrontText(string front)
-        {
-            var original = front;
-            try
-            {
-                front = front.Replace("\n", "");
-                front = front.Replace("\r", "");
-                while (front[^1] == ' ')
-                {
-                    front = front.Substring(0, front.Length - 1);
-                }
-                front = front[0].ToString().ToUpper() + front.Substring(1, front.Length - 1);
-                
-                return front;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                return original;
-            }
-        }
-
         private static string GetListOf(List<string> list)
         {
             var collocations = "";
@@ -177,14 +147,14 @@ namespace AnkiDictionary
             LongPause();
 
             // Front
-            WriteText(FixFrontText(note.Text));
+            WriteText(Utility.FixFrontText(note.Text));
             ClickKey(VirtualKeyCode.TAB);
 
             // US
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(FixFrontText(note.Text));
+            WriteText(Utility.FixFrontText(note.Text));
 
             for (var i = 0; i < 5; i++)
             {
@@ -207,7 +177,7 @@ namespace AnkiDictionary
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(FixFrontText(note.Text));
+            WriteText(Utility.FixFrontText(note.Text));
 
             for (var i = 0; i < 5; i++)
             {
@@ -264,7 +234,7 @@ namespace AnkiDictionary
             // Ctrl + Enter
             CtrlEnter();
             
-            Console.WriteLine($"{PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
+            Console.WriteLine($"{Utility.PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
 
         }
         
@@ -333,7 +303,7 @@ namespace AnkiDictionary
                         CtrlA();
                         CtrlC();
                         front = ClipboardManager.GetText();
-                        Console.Write($"{front}{PrintSpaces(front.Length,50)}DUPLICATE");
+                        Console.Write($"{front}{Utility.PrintSpaces(front.Length,50)}DUPLICATE");
 
                         for (var j = 0; j < 12; j++)
                         {
@@ -357,7 +327,7 @@ namespace AnkiDictionary
                     //{
                     //    var splitFront = front.Split('[');
                     //    actualFront = splitFront[0];
-                    //    actualFront = FixFrontText(actualFront);
+                    //    actualFront = Utility.FixFrontText(actualFront);
                     //    var sound = "["+splitFront[1];
 
                     //    // edit
@@ -368,15 +338,15 @@ namespace AnkiDictionary
                     //}
                     //else
                     //{
-                    //    actualFront = FixFrontText(actualFront);
+                    //    actualFront = Utility.FixFrontText(actualFront);
                     //    WriteText(actualFront);
                     //    ClickKey(VirtualKeyCode.TAB);
                     //}
 
-                    //Console.Write($"{actualFront}{PrintSpaces(actualFront.Length,50)}\tFront:{needFrontChange}");
+                    //Console.Write($"{actualFront}{Utility.PrintSpaces(actualFront.Length,50)}\tFront:{needFrontChange}");
                     ClickKey(VirtualKeyCode.TAB);
                     var actualFront = front;
-                    Console.Write($"{actualFront}{PrintSpaces(actualFront.Length,50)}");
+                    Console.Write($"{actualFront}{Utility.PrintSpaces(actualFront.Length,50)}");
 
                     // check TypeGroup
                     ClickKey(VirtualKeyCode.TAB);
@@ -493,7 +463,7 @@ namespace AnkiDictionary
                 var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
                 if (note == null)
                     continue;
-                var checker = FixFrontText(note.Text).Equals(FixFrontText(item.Key));
+                var checker = Utility.FixFrontText(note.Text).Equals(Utility.FixFrontText(item.Key));
                 if(!checker)
                     continue;
                 
@@ -523,14 +493,14 @@ namespace AnkiDictionary
 
                 if (duplicateCheckerText.ToLower().Contains("nid:"))
                 {
-                    Console.WriteLine($"{PrintSpaces(item.Key.Length,50)}\t✓\tWRONG nid");
+                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tWRONG nid");
                     continue;
                 }
 
                 if (!duplicateCheckerText.ToLower().Equals(item.Key.ToLower()))
                 {
                     
-                    Console.WriteLine($"{PrintSpaces(item.Key.Length,50)}\t✓\tDUPLICATE");
+                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tDUPLICATE");
                     for (var j = 0; j < 12; j++)
                     {
                         ClickKey(VirtualKeyCode.TAB);
@@ -539,7 +509,7 @@ namespace AnkiDictionary
                 }
 
                 // Front
-                WriteText(FixFrontText(item.Key));
+                WriteText(Utility.FixFrontText(item.Key));
                 ClickKey(VirtualKeyCode.TAB);
         
                 // US
@@ -595,7 +565,7 @@ namespace AnkiDictionary
                 remaining--;
                 dictionary.Remove(item.Key);
                 DictionaryJsonUtility.ExportDictionaryToJson(dictionary);
-                Console.WriteLine($"{PrintSpaces(item.Key.Length,50)}\t✓\trem:{remaining}");
+                Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\trem:{remaining}");
             }
             
             ClickKey(VirtualKeyCode.ESCAPE);
