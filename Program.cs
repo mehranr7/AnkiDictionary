@@ -56,7 +56,13 @@ while (!option.Equals("\u001b"))
             }
             var requestedNotes = await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
             
-            ProgramHandler.StartAddingNotes(requestedNotes);
+            Console.WriteLine("Would you like to add given notes? (1 means yes anything else means no)");
+
+            if (Console.ReadKey().KeyChar.ToString() == "1")
+            {
+                ProgramHandler.StartAddingNotes(requestedNotes);
+            }
+
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
             isAsked = false;

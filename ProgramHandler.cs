@@ -33,11 +33,6 @@
         
         public static void StartAddingNotes(List<AnkiNote> notes)
         {
-            // Fire button
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("I'm ready! Press any key to start adding new notes.");
-            Console.ReadKey();
-            
             // Going for Anki window
             ControllerSimulator.OpenAddNewWindow();
             

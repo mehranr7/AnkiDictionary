@@ -48,17 +48,59 @@ consider when I separate a word or a group of words using comma the answer must 
 
         }
         
-        private async Task<string> AskGemini(string question)
+        private async Task<string> AskGemini(string question, bool isEssential = true)
         {
             Console.WriteLine("\n____________\n");
             Console.WriteLine($"Sending Message Below:\n{question}");
+            var failureCounter = 0;
+            var response = "";
             var chatQuestion = new ChatMessage()
             {
                 Content = question
             };
             _conversation.Messages.Add(chatQuestion);
-            var response = await _client.CompleteAsync(_conversation,_completionOptions);
-            Console.WriteLine($"Response is:\n {response}");
+            while (string.IsNullOrEmpty(response))
+            {
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine("Please wait...");
+                try
+                {
+                    response = await _client.CompleteAsync(_conversation,_completionOptions);
+                    Console.WriteLine("\n____________\n");
+                }
+                catch (Exception e)
+                {
+                    if (e.Message.ToLower().Contains("key"))
+                    {
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine("We've reached Gemini's limit.");
+                        Console.Write("Counting down ");
+                        for (var i = 0; i < 5; i++)
+                        {
+                            Console.Write(i+1);
+                            Thread.Sleep(1000);  
+                        }
+                        Console.WriteLine("");
+                    }
+                    else
+                    {
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine($"A problem posed while asking Gemini.\n{e}");
+                    }
+
+                    if (failureCounter > 2 && !isEssential)
+                    {
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine("Failed to get a response!");
+                        break;
+                    }
+
+                    failureCounter++;
+
+                }
+            }
+            if(!string.IsNullOrEmpty(response))
+                Console.WriteLine($"Response is:\n {response}");
             Console.WriteLine("\n____________\n");
             return response;
         }
