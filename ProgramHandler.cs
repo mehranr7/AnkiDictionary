@@ -54,7 +54,6 @@
             Console.WriteLine("Adding new notes.");
             foreach (var note in notes)
             {
-                Console.WriteLine(note.Text);
                 ControllerSimulator.AddNewNote(note);
             }
         }

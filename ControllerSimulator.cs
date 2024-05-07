@@ -171,6 +171,9 @@ namespace AnkiDictionary
         
         public static void AddNewNote(AnkiNote note)
         {
+            
+            Console.Write($"‣ {note.Text}");
+
             LongPause();
 
             // Front
@@ -261,7 +264,7 @@ namespace AnkiDictionary
             // Ctrl + Enter
             CtrlEnter();
             
-            Console.WriteLine($"‣{note.Text}{PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
+            Console.WriteLine($"{PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
 
         }
         
