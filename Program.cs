@@ -14,12 +14,13 @@ IConfiguration config = new ConfigurationBuilder()
     .Build();
 
 var apiKey = config["Gemini:ApiKey"];
+var defaultIntroduction = config["Gemini:DefaultIntroduction"];
 
-if (apiKey == null)
+if (apiKey == null || defaultIntroduction == null)
     return;
 
 var geminiDictionaryConvertor =
-    new GeminiDictionaryConvertor(apiKey);
+    new GeminiDictionaryConvertor(apiKey, defaultIntroduction);
 
 while (!validOptions.Any(x=>x.Equals(option)))
 {
