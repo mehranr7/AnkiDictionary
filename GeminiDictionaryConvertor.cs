@@ -2,7 +2,10 @@
 using ChatAIze.GenerativeCS.Clients;
 using ChatAIze.GenerativeCS.Models;
 using ChatAIze.GenerativeCS.Options.Gemini;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using System.Linq;
+using static Azure.Core.HttpHeader;
 
 namespace AnkiDictionary
 {
@@ -12,7 +15,13 @@ namespace AnkiDictionary
         private readonly GeminiClient _client;
         private readonly ChatConversation _conversation;
         private readonly string _introduction;
-        
+        private readonly int _coolDown;
+        private readonly List<int> _regulationList;
+        private readonly int _maximumRequests;
+        private int _regularAnswerCount;
+        private bool _clearLine;
+        private int _geminiRequestCounter;
+
         public GeminiDictionaryConvertor(string apiKey, string introduction)
         {
             _introduction = introduction;
@@ -22,19 +31,60 @@ namespace AnkiDictionary
             {
                 Model = ChatCompletionModels.Gemini.GeminiPro
             };
+            IConfiguration config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json")
+                .Build();
+            
+            _coolDown = Int32.Parse(config["Gemini:CoolDown"]!);
+            _maximumRequests = Int32.Parse(config["Gemini:MaximumRequests"]!);
+            _regularAnswerCount = Int32.Parse(config["Gemini:RegularAnswerCount"]!);
+            _regulationList = new List<int>();
+            _clearLine = false;
+            _geminiRequestCounter = 0;
+        }
+
+        private void CoolDown()
+        {
+            if (_clearLine)
+            {
+                Utility.ClearLastLines(3);
+                _clearLine = false;
+            }
+            Console.WriteLine("\nCooling down");
+            for (var i = 0; i < _coolDown; i++)
+            {
+                Utility.DrawProgressBar(i+1,_coolDown);
+                Thread.Sleep(1000);
+            }
+            Console.WriteLine();
+            Utility.ClearLastLines(3);
         }
 
         public async Task<string> MakeAnIntroduction(string? introduction)
         {
             introduction = string.IsNullOrEmpty(introduction) ? _introduction : introduction;
-            return await AskGemini(introduction);
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine(introduction);
+
+            var response = await AskGemini(introduction);
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine(response);
+
+            return response;
 
         }
         
-        private async Task<string> AskGemini(string question, bool isEssential = true)
+        private async Task<string> AskGemini(string question)
         {
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine($"Sending Message Below:\n{question}");
+            if (_geminiRequestCounter > _maximumRequests)
+            {
+                CoolDown();
+                _geminiRequestCounter = 0;
+            }
+
             var failureCounter = 0;
             var response = "";
             var chatQuestion = new ChatMessage()
@@ -44,51 +94,59 @@ namespace AnkiDictionary
             _conversation.Messages.Add(chatQuestion);
             while (string.IsNullOrEmpty(response))
             {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Please wait...");
                 try
                 {
+                    _geminiRequestCounter++;
                     response = await _client.CompleteAsync(_conversation,_completionOptions);
-                    Console.WriteLine("\n____________\n");
                 }
                 catch (Exception e)
                 {
-                    if (e.Message.ToLower().Contains("key"))
+                    if (e.Message.ToLower().Contains("many") 
+                             || e.Message.ToLower().Contains("key") 
+                             || e.Message.ToLower().Contains("500") 
+                             || e.Message.ToLower().Contains("429"))
                     {
-                        Console.WriteLine("\n____________\n");
-                        Console.WriteLine("We've reached Gemini's limit.");
-                        Console.Write("Counting down ");
-                        for (var i = 0; i < 5; i++)
+
+                        if (failureCounter > 4)
                         {
-                            Console.Write(i+1);
-                            Thread.Sleep(1000);  
+                            Console.WriteLine("\n____________\n");
+                            Console.WriteLine("Failed to get a response!");
+                            Console.WriteLine("\n____________\n");
+                            _clearLine = false;
+                            break;
                         }
-                        Console.WriteLine("");
+
+                        CoolDown();
+
+                        failureCounter++;
                     }
                     else
                     {
-                        Console.WriteLine("\n____________\n");
-                        Console.WriteLine($"A problem posed while asking Gemini.\n{e}");
-                    }
+                        
+                        await Utility.SaveAnError(
+                            "Line 125 - \n\"A problem posed while asking Gemini.", e);
+                        _clearLine = false;
+                        
 
-                    if (failureCounter > 2 && !isEssential)
-                    {
-                        Console.WriteLine("\n____________\n");
-                        Console.WriteLine("Failed to get a response!");
-                        break;
-                    }
+                        if (failureCounter > 2)
+                        {
+                            Console.WriteLine("\n____________\n");
+                            Console.WriteLine("Failed to get a response!");
+                            Console.WriteLine("\n____________\n");
+                            _clearLine = false;
+                            break;
+                        }
 
-                    failureCounter++;
+                        failureCounter++;
+                    }
 
                 }
             }
-            if(!string.IsNullOrEmpty(response))
-                Console.WriteLine($"Response is:\n {response}");
-            Console.WriteLine("\n____________\n");
+            
             return response;
         }
 
-        public static List<AnkiNote> StringToAnkiNotes(string input)
+        public static async Task<List<AnkiNote>> StringToAnkiNotes(string input)
         {
             input += "     ";
             var ankiNotes = new List<AnkiNote>();
@@ -108,63 +166,184 @@ namespace AnkiDictionary
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine($"Error :\n{e}\nConfronted a problem while converting the string below :\n{ankiString}");
-                        break;
+                        await Utility.SaveAnError(
+                            $"Line 167 - \nConfronted a problem while converting the string below :\n{ankiString}", e);
+
+                        start = input.IndexOf("{", end, StringComparison.Ordinal);
+                        end = input.IndexOf("}", end + 1, StringComparison.Ordinal);
                     }
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error :\n{e}\nConfronted a problem at the beginning of converting this input :\n{input}");
+                await Utility.SaveAnError(
+                    $"Line 178 - \nConfronted a problem at the beginning of converting this input :\n{input}", e);
             }
             return ankiNotes;
         }
 
-        public async Task<List<AnkiNote>> AskUntilCoverList(string askedString)
+        public async Task<List<AnkiNote>> AskUntilCoverList(string askedString, bool needConfirm = true, int preProcessedCount = 0, int total = 0)
         {
-            var notes = new List<AnkiNote>();
-            var askedListInvalid = askedString.Split(",").ToList();
-            var askedList = new List<string>();
-            foreach (var note in askedListInvalid)
+            if (needConfirm)
             {
-                var fixedNote = Utility.FixFrontText(note);
-                askedList.Add(fixedNote);
+                needConfirm = Utility.AskTrueFalseQuestion("Do you want me to get confirmation to carry on?");
+                Console.WriteLine("\n____________\n");
             }
+
+            var notes = new List<AnkiNote>();
+            var askedList = askedString.Split(",").Select(Utility.FixFrontText).ToList();
+
+            if(String.IsNullOrWhiteSpace(askedList.Last()))
+                askedList.RemoveAt(askedList.Count-1);
+
+            total = total==0 ? askedList.Count : total;
+            var remListBuffer = new List<int> {  total-preProcessedCount };
+            while (askedList.Count > _regularAnswerCount)
+            {
+
+                var bufferList = askedList.Take(_regularAnswerCount).ToList();
+                var answerNotes = await AskUntilCoverList(String.Join(", ", bufferList), needConfirm, notes.Count, total);
+                foreach (var answerNote in answerNotes)
+                {
+                    notes.Add(answerNote);
+                    askedList.RemoveAll(x => x.ToLower() == answerNote.Text.ToLower());
+                }
+
+                var carryOnBuffering = true;
+                if(needConfirm)
+                    carryOnBuffering = Utility.AskTrueFalseQuestion($"Carry on asking more {_regularAnswerCount} cards?");
+                
+
+                if (!carryOnBuffering)
+                {
+                    var preNotesList = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json") ?? new List<AnkiNote>();
+                    preNotesList.AddRange(notes);
+                    await JsonFileHandler.SaveToJsonFileAsync(preNotesList, "saved.json");
+                    return notes;
+                }
+
+                remListBuffer.Add(askedList.Count);
+
+                if(remListBuffer.Count > 2)
+                    if (remListBuffer[^1] == askedList.Count
+                        && remListBuffer[^2] == askedList.Count
+                        && remListBuffer[^3] == askedList.Count)
+                    {
+                        
+                        var preNotesList = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json") ?? new List<AnkiNote>();
+                        preNotesList.AddRange(notes);
+                        await JsonFileHandler.SaveToJsonFileAsync(preNotesList, "saved.json");
+
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine("Ops! there's a problem with remaining or Gemini introduction.");
+                        Console.WriteLine("Let's let the remaining slide");
+                        return notes;
+                    }
+            }
+
             var notesStringToAsk = String.Join(", ", askedList.ToArray());
-            var remainingNotes = askedList.Count;
-            
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine($"Start Asking {askedList.Count} notes");
+            var remainingNotes = total - preProcessedCount;
             var carryOn = true;
-            var notesString = "";
+            var remList = new List<int> { remainingNotes };
             while (remainingNotes>0 && carryOn && !string.IsNullOrEmpty(notesStringToAsk))
             {
+                if (_regulationList.Any())
+                {
+                    var average =  (int)_regulationList.Average();
+                    _regularAnswerCount = average > 0 ? average+1 : _regularAnswerCount;
+                }
+                
+                if (_clearLine)
+                {
+                    Utility.ClearLastLines(3);
+                    _clearLine = false;
+                }
+                
+                Console.WriteLine($"\nNext to ask : {notesStringToAsk}");
+                Utility.DrawProgressBar(preProcessedCount+notes.Count, total);
+                Console.WriteLine();
+                _clearLine = true;
+
                 var newNotesString = await AskGemini(notesStringToAsk);
-                notesString += newNotesString;
-                ClipboardManager.SetText(notesString);
-                var newNotes = StringToAnkiNotes(newNotesString);
+                
+                var newNotes = await StringToAnkiNotes(newNotesString);
+
+                if (_clearLine)
+                {
+                    Utility.ClearLastLines(3);
+                    _clearLine = false;
+                }
+
                 foreach (var newNote in newNotes)
                 {
-                    askedList.Remove(Utility.FixFrontText(newNote.Text));
+                    if (notes.Any(x => x.Text.ToLower() == newNote.Text.ToLower()))
+                        continue;
+                    var front = Utility.FixFrontText(newNote.Text);
+                    var hasExactMatch = askedList.Any(x => x.ToLower() == newNote.Text.ToLower());
+                    if (askedList.Any(x=>x.ToLower().Contains(front.ToLower())) && !hasExactMatch)
+                    {
+                        Console.WriteLine($"‣ {front} has misspelling.");
+                        var newFront = askedList.FirstOrDefault(x => x.ToLower().Contains(front.ToLower()) && x.ToLower().Contains(newNote.Type.ToLower()));
+
+                        if (newFront != null)
+                        {
+                            askedList.RemoveAll(x=>x.ToLower().Contains(front.ToLower()) && x.ToLower().Contains(newNote.Type.ToLower()));
+                            newNote.Text = Utility.FixFrontText(newFront);
+                            Console.WriteLine($"‣ {front} switched to {newNote.Text}");
+                            front = Utility.FixFrontText(newNote.Text);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"‣ There is no alteration for {front}");
+                        }
+                    }
+                    else
+                    {
+                        askedList.Remove(front);
+                    }
                     notes.Add(newNote);
-                    Console.WriteLine($"‣ {newNote.Text}{Utility.PrintSpaces(newNote.Text.Length)}Rem:{askedList.Count}");
+                    Console.WriteLine($"‣ {front}{Utility.PrintSpaces(newNote.Text.Length)}Rem:{total-preProcessedCount-notes.Count}");
                 }
-                remainingNotes = askedList.Count;
+
+                _regulationList.Add(newNotes.Count);
+
+                remainingNotes -= newNotes.Count;
+
                 notesStringToAsk = String.Join(", ", askedList.ToArray());
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine($"Remaining : {notesStringToAsk}");
+
                 if (string.IsNullOrEmpty(notesStringToAsk))
                 {
                     carryOn = false;
                 }
                 else
                 {
-                    Console.WriteLine("Carry on asking? (1 means yes anything else means no)");
-                    carryOn = Console.ReadKey().KeyChar.ToString() == "1";
+                    carryOn = true;
+                
+                    if(needConfirm)
+                        carryOn = Utility.AskTrueFalseQuestion("Carry on asking remaining cards?");
                 }
+                remList.Add(remainingNotes);
+
+                if(remList.Count > 2)
+                    if (remList[^1] == remainingNotes
+                        && remList[^2] == remainingNotes
+                        && remList[^3] == remainingNotes)
+                    {
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine("Ops! there's a problem with remaining or Gemini introduction.");
+                        Console.WriteLine("Let's let the remaining slide");
+                        break;
+                    }
+                
+                Console.WriteLine($"\nNext to ask : {notesStringToAsk}");
+                Utility.DrawProgressBar(preProcessedCount+notes.Count, total);
+                Console.WriteLine();
+                _clearLine = true;
+
+                var preNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json") ?? new List<AnkiNote>();
+                preNotes.AddRange(notes);
+                await JsonFileHandler.SaveToJsonFileAsync(preNotes, "saved.json");
             }
-            Console.WriteLine("Done.");
-            Console.WriteLine("\n____________\n");
             return notes;
         }
     }

@@ -1,12 +1,13 @@
 ﻿using AnkiDictionary;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 // choose option
 var isAsked = false;
 var isIntroductionValid = false;
-var option = ProgramHandler.AskOptions(isAsked);
+var option = Utility.AskOptions(isAsked);
 isAsked = true;
-var validOptions = new List<string> {"1", "2", "3", "4", "5", "\u001b"};
+var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -15,8 +16,17 @@ IConfiguration config = new ConfigurationBuilder()
 
 var apiKey = config["Gemini:ApiKey"];
 var defaultIntroduction = config["Gemini:DefaultIntroduction"];
+var groupCount = config["Gemini:RegularAnswerCount"];
+var coolDown = config["Gemini:CoolDown"];
+var shortPause = config["Speed:ShortPause"];
+var longPause = config["Speed:LongPause"];
 
-if (apiKey == null || defaultIntroduction == null)
+if (apiKey == null 
+    || defaultIntroduction == null
+    || groupCount == null
+    || coolDown == null
+    || shortPause == null
+    || longPause == null)
     return;
 
 var geminiDictionaryConvertor =
@@ -27,16 +37,13 @@ while (!validOptions.Any(x=>x.Equals(option)))
     option = Console.ReadKey(true).KeyChar.ToString();
 }
 
-if (option.Equals("1"))
+if (option.Equals("1") || option.Equals("4"))
 {
     while (!isIntroductionValid)
     {
-        Console.WriteLine("\n____________\n");
-        Console.WriteLine("Give me an introduction to provide for Gemini or leave it empty to use default.");
-        var introduction = Console.ReadLine();
-        await ProgramHandler.Introduction(introduction, geminiDictionaryConvertor);
-        Console.WriteLine("Is the introduction valid? (1 means yes anything else means no)");
-        isIntroductionValid = Console.ReadKey().KeyChar.ToString() == "1";
+        var introduction = Utility.AskAString("Give me an introduction to provide for Gemini or leave it empty to use default.");
+        await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
+        isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
     }
 }
 
@@ -45,23 +52,27 @@ while (!option.Equals("\u001b"))
     switch (option)
     {
         case "1":
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Give me your word(s)/phrase(s) to start.");
-            var words = Console.ReadLine();
-            Console.WriteLine("\n____________\n");
-            while (words is null)
-            {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Give me your word(s)/phrase(s) to start.");
-                words = Console.ReadLine();
-            }
-            var requestedNotes = await ProgramHandler.AskGeminiAnkiNotes(words, geminiDictionaryConvertor);
-            
-            Console.WriteLine("Would you like to add given notes? (1 means yes anything else means no)");
+            var words = Utility.AskAString("Give me your word(s)/phrase(s) : ");
 
-            if (Console.ReadKey().KeyChar.ToString() == "1")
+            var noteTags = Utility.AskAString("Please enter tag(s) : ");
+            var tagList = new List<string>();
+            if (noteTags.Contains(","))
+                tagList = noteTags.Split(",").Select(Utility.FixFrontText).ToList();
+
+            var requestedNotes = await geminiDictionaryConvertor.AskUntilCoverList(words);
+            
+            if (Utility.AskTrueFalseQuestion("Would you like to add given notes?"))
             {
-                ProgramHandler.StartAddingNotes(requestedNotes);
+                // Going for Anki window
+                ControllerSimulator.OpenAddNewWindow();
+            
+                // Adding
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine("Adding new notes.");
+                foreach (var note in requestedNotes)
+                {
+                    ControllerSimulator.AddNewNote(note, tagList);
+                }
             }
 
             Console.WriteLine("Done.");
@@ -72,22 +83,12 @@ while (!option.Equals("\u001b"))
 
         case "2":
             List<AnkiNote> notes;
-
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Give me your note(s) to start. (JSON format)");
-            var stringNotes = Console.ReadLine();
-            Console.WriteLine("\n____________\n");
-
-            while (stringNotes is null)
-            {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Give me your note(s) to start. (JSON format)");
-                stringNotes = Console.ReadLine();
-                Console.WriteLine("\n____________\n");
-            }
+            
+            var stringNotes = Utility.AskAString("Give me your note(s) to start. (JSON format)");
+            
             try
             {
-                notes = GeminiDictionaryConvertor.StringToAnkiNotes(stringNotes);
+                notes = await GeminiDictionaryConvertor.StringToAnkiNotes(stringNotes);
             }
             catch (Exception)
             {
@@ -97,7 +98,23 @@ while (!option.Equals("\u001b"))
                 isAsked = false;
                 break;
             }
-            ProgramHandler.StartAddingNotes(notes);
+            
+            var tags = Utility.AskAString("Please enter tag(s) : ");
+            var tagsList = new List<string>();
+            if (tags.Contains(","))
+                tagsList = tags.Split(",").Select(Utility.FixFrontText).ToList();
+
+            // Going for Anki window
+            ControllerSimulator.OpenAddNewWindow();
+            
+            // Adding
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("Adding new notes.");
+            foreach (var note in notes)
+            {
+                ControllerSimulator.AddNewNote(note, tagsList);
+            }
+
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
             isAsked = false;
@@ -105,26 +122,21 @@ while (!option.Equals("\u001b"))
             break;
 
         case "3":
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Give me the text if you want me to apply FILTER:");
-            var filter = Console.ReadLine();
+            var filter = Utility.AskAString("Give me the text if you want me to apply filter:");
             if (filter == "")
                 filter = null;
-
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("How many record do you want me to CHECK?");
-            var recordCount = Int32.Parse(Console.ReadLine()!);
+            var neededFieldIndex = Utility.AskAnInteger("Give me the index of field which you wanna check:");
+            var recordCount = Utility.AskAnInteger("How many record do you want me to check?");
+            var skips = Utility.AskAnInteger("How many record do you want me to skip?");
+            var mark =  Utility.AskAString("Give me a text mark if you want to leave a mark on note otherwise leave it empty:");
+            if (mark == "")
+                mark = null;
             
+            var doubleDown = Utility.AskTrueFalseQuestion("Do you want to enable double down?");
             Console.WriteLine("\n____________\n");
-            Console.WriteLine("How many record do you want me to SKIP?");
-            var skips = Int32.Parse(Console.ReadLine()!);
-
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Do you want to enable double down? (1 means yes anything else means no)");
-            var doubleDown = Console.ReadKey().KeyChar.ToString() == "1";
-            Console.WriteLine("\n____________\n");
-
-            ProgramHandler.SeparateImageAndPronunciation(recordCount, skips, filter, doubleDown);
+            
+            ControllerSimulator.OpenBrowseWindow();
+            await ControllerSimulator.FindNeededItems(neededFieldIndex, recordCount, skips, filter, doubleDown, mark);
 
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
@@ -132,51 +144,125 @@ while (!option.Equals("\u001b"))
             break;
 
         case "4":
-            List<AnkiNote> updateNotes;
+            
+            var cardsInNeeds =
+                await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
 
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Give me your note(s) to start. (JSON format)");
-            var stringUpdateNotes = Console.ReadLine();
-            while (stringUpdateNotes is null)
+            if (cardsInNeeds == null)
             {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Give me your note(s) to start. (JSON format)");
-                stringUpdateNotes = Console.ReadLine();
-            }
-            try
-            {
-                updateNotes = GeminiDictionaryConvertor.StringToAnkiNotes(stringUpdateNotes);
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
                 Console.WriteLine("\n____________\n");
                 isAsked = false;
                 break;
             }
-            ProgramHandler.UpdateNotes(updateNotes);
 
+            var saves =
+                await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json")!;
+
+            if (saves != null)
+                foreach (var save in saves)
+                {
+                    foreach (var temp in cardsInNeeds)
+                    {
+                        if (temp.Key.ToLower() == save.Text.ToLower())
+                            cardsInNeeds.Remove(temp.Key);
+                    }
+                }
+
+            var neededNotes = cardsInNeeds.Keys.Reverse().ToList();
+            var howMany = -1;
+
+            while (howMany < 1 || howMany > neededNotes.Count)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine($"There are {neededNotes.Count} cards.");
+                howMany = Utility.AskAnInteger("How many cards do you want to update?");
+            }
+
+            neededNotes = neededNotes.Take(howMany).ToList();
+            
+            var stringUpdateNotes = "";
+
+            foreach (var neededNote in neededNotes)
+            {
+                stringUpdateNotes += neededNote + ", ";
+            }
+
+            if (stringUpdateNotes.Length > 3)
+            {
+                stringUpdateNotes = stringUpdateNotes.Substring(0, stringUpdateNotes.Length - 2);
+            }
+
+            var updateNotes = await geminiDictionaryConvertor.AskUntilCoverList(stringUpdateNotes);
+            
+            if (Utility.AskTrueFalseQuestion("Would you like to update the notes?"))
+            {
+                ControllerSimulator.OpenBrowseWindow();
+                await ControllerSimulator.UpdateNotes(updateNotes);
+            }
+
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
+            isAsked = false;
+            
+            break;
+
+        case "5":
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("Updating...\n");
+            var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
+
+            while (savedNotes != null && savedNotes.Count > 0)
+            {
+                var dic = await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
+                var extraCards = new List<AnkiNote>();
+                foreach (var card in savedNotes)
+                {
+                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card.Text.ToLower())))
+                    {
+                        extraCards.Add(card);
+                    }
+                }
+
+                foreach (var extraCard in extraCards)
+                    savedNotes.Remove(extraCard);
+
+                await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
+
+                ControllerSimulator.OpenBrowseWindow();
+                await ControllerSimulator.UpdateNotes(savedNotes);
+
+                savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
+            }
+            
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
             isAsked = false;
             break;
 
-        case "5":
-            var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
+        case "6":
+
+            var dictionary =
+                await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
+            if(dictionary == null)
+            {
+                Console.WriteLine("\n____________\n");
+                isAsked = false;
+                break;
+            }
+
             var cardsInNeed = "";
             foreach (var card in dictionary)
             {
                 cardsInNeed += card.Key + ", ";
             }
-            if (cardsInNeed.Length > 2)
+            if (cardsInNeed.Length > 3)
             {
-                cardsInNeed = cardsInNeed.Substring(0, cardsInNeed.Length - 2);
+                cardsInNeed = cardsInNeed.Substring(0, cardsInNeed.Length - 3);
             }
 
             if (cardsInNeed.Length > 0)
             {
-
                 ClipboardManager.SetText(cardsInNeed);
             
                 Console.WriteLine($"{dictionary.Count} words/phrases copied.");
@@ -190,9 +276,51 @@ while (!option.Equals("\u001b"))
             isAsked = false;
             break;
 
+        case "7":
+            List<AnkiNote> updateNeededNotes;
+
+            Console.WriteLine("\n____________\n");
+            Console.WriteLine("Give me your note(s) to start. (JSON format)");
+            var stringUpdateNeededNotes = Console.ReadLine();
+            while (stringUpdateNeededNotes is null)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine("Give me your note(s) to start. (JSON format)");
+                stringUpdateNeededNotes = Console.ReadLine();
+            }
+            try
+            {
+                updateNeededNotes = await GeminiDictionaryConvertor.StringToAnkiNotes(stringUpdateNeededNotes);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("\n____________\n");
+                Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
+                Console.WriteLine("\n____________\n");
+                isAsked = false;
+                break;
+            }
+            ControllerSimulator.OpenBrowseWindow();
+            await ControllerSimulator.UpdateNotes(updateNeededNotes);
+
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
+            isAsked = false;
+            break;
+        
+        case "8":
+            isIntroductionValid = false;
+            while (!isIntroductionValid)
+            {
+                var introduction = Utility.AskAString("Give me an introduction to provide for Gemini or leave it empty to use default.");
+                await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
+                isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
+            }
+            break;
+
     }
     // choose option
-    option = ProgramHandler.AskOptions(isAsked);
+    option = Utility.AskOptions(isAsked);
     if(!isAsked)
         isAsked = true;
 }

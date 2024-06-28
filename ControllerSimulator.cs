@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 using WindowsInput;
 using WindowsInput.Native;
 
@@ -32,11 +33,21 @@ namespace AnkiDictionary
             ShortPause();
         }
 
-        private static void WriteText(string text)
+        private static void WriteText(string text, bool fixText = true)
         {
             if(string.IsNullOrEmpty(text))
                 return;
-            Simulator.Keyboard.TextEntry(text);
+
+            Simulator.Keyboard.TextEntry(fixText ? Utility.FixFrontText(text) : text);
+            ShortPause();
+        }
+        
+        private static void CtrlF()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            ClickKey(VirtualKeyCode.VK_F);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
         }
         
@@ -89,13 +100,13 @@ namespace AnkiDictionary
             LongPause();
         }
         
-        private static void CtrlShiftX()
+        private static void CtrlShiftT()
         {
             Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
             ShortPause();
             Simulator.Keyboard.KeyDown(VirtualKeyCode.SHIFT);
             ShortPause();
-            ClickKey(VirtualKeyCode.VK_X);
+            ClickKey(VirtualKeyCode.VK_T);
             Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
             Simulator.Keyboard.KeyUp(VirtualKeyCode.SHIFT);
@@ -113,12 +124,14 @@ namespace AnkiDictionary
 
         private static string GetListOf(List<string> list)
         {
+            if (list == null || list.Count == 0) return "";
             var collocations = "";
             foreach (var collocation in list)
             {
                 if(collocations.Length > 0)
                     collocations += Environment.NewLine;
-                collocations += $@"- {collocation}";
+                if(collocation.Length > 0)
+                    collocations += $@"- {Utility.FixFrontText(collocation)}";
             }
 
             return collocations;
@@ -139,7 +152,7 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_B);
         }
         
-        public static void AddNewNote(AnkiNote note)
+        public static void AddNewNote(AnkiNote note, List<string> tags)
         {
             
             Console.Write($"‣ {note.Text}");
@@ -147,14 +160,14 @@ namespace AnkiDictionary
             LongPause();
 
             // Front
-            WriteText(Utility.FixFrontText(note.Text));
+            WriteText(note.Text);
             ClickKey(VirtualKeyCode.TAB);
 
             // US
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(Utility.FixFrontText(note.Text));
+            WriteText(note.Text);
 
             for (var i = 0; i < 5; i++)
             {
@@ -177,7 +190,7 @@ namespace AnkiDictionary
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(Utility.FixFrontText(note.Text));
+            WriteText(note.Text);
 
             for (var i = 0; i < 5; i++)
             {
@@ -198,9 +211,29 @@ namespace AnkiDictionary
             // Type
             WriteText(note.Type);
             ClickKey(VirtualKeyCode.TAB);
-
+            
             // Usage
             WriteText(note.Usage);
+            ClickKey(VirtualKeyCode.TAB);
+            
+            // Level
+            WriteText(note.Level);
+            ClickKey(VirtualKeyCode.TAB);
+
+            // Band
+            WriteText(note.Band);
+            ClickKey(VirtualKeyCode.TAB);
+            
+            // Frequency
+            WriteText(note.Frequency.ToString());
+            ClickKey(VirtualKeyCode.TAB);
+            
+            // American Phonetic
+            WriteText(note.AmericanPhonetic);
+            ClickKey(VirtualKeyCode.TAB);
+            
+            // British Phonetic
+            WriteText(note.BritishPhonetic);
             ClickKey(VirtualKeyCode.TAB);
 
             // Definition
@@ -220,16 +253,46 @@ namespace AnkiDictionary
             ClickKey(VirtualKeyCode.TAB);
 
             // Collocation
-            WriteText(GetListOf(note.Collocations));
+            WriteText(GetListOf(note.Collocations),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Synonyms
-            WriteText(GetListOf(note.Synonyms));
+            WriteText(GetListOf(note.Synonyms),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Antonyms
-            WriteText(GetListOf(note.Antonyms));
+            WriteText(GetListOf(note.Antonyms),false);
             ClickKey(VirtualKeyCode.TAB);
+
+            // Verb
+            if(note.Verb!=null)
+                WriteText(note.Verb);
+            ClickKey(VirtualKeyCode.TAB);
+
+            // Noun
+            if(note.Noun!=null)
+                WriteText(note.Noun);
+            ClickKey(VirtualKeyCode.TAB);
+
+            // Adjective
+            if(note.Adjective!=null)
+                WriteText(note.Adjective);
+            ClickKey(VirtualKeyCode.TAB);
+
+            // Adverb
+            if(note.Adverb!=null)
+                WriteText(note.Adverb);
+            
+            // Tags
+            CtrlShiftT();
+            CtrlA();
+            ClickKey(VirtualKeyCode.BACK);
+            note.Categories.AddRange(tags);
+            foreach (var tag in note.Categories)
+            {
+                WriteText(tag);
+                ClickKey(VirtualKeyCode.RETURN);
+            }
 
             // Ctrl + Enter
             CtrlEnter();
@@ -238,21 +301,23 @@ namespace AnkiDictionary
 
         }
         
-        public static void StartSeparatingParts(int recordsCount, int skips, string? filter = null, bool doubleDown = false)
+        public static async Task FindNeededItems(int neededFieldIndex, int recordsCount, int skips, string? filter = null, bool doubleDown = false, string? mark = null)
         {
-            var missedDictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
-            
+            var missedDictionary = await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
+            if(missedDictionary  == null) return;
+
             var frontList = "";
             foreach (var card in missedDictionary)
                 frontList += card.Key + ", ";
 
-            if (frontList.Length > 0)
+            if (frontList.Length > 3)
             {
                 frontList = frontList.Substring(1, frontList.Length - 3);
             }
             
             // Apply filter
             LongPause();
+            CtrlF();
             if (filter != null)
             {
                 WriteText(filter);
@@ -280,137 +345,76 @@ namespace AnkiDictionary
                         ClickKey(VirtualKeyCode.DOWN);
                     }
 
-                    
+                    // to first field
                     for (var j = 0; j < 4; j++)
                     {
                         ClickKey(VirtualKeyCode.TAB);
                     }
-
-                    // check duplicate
-                    CtrlA();
-                    ClickKey(VirtualKeyCode.RIGHT);
-                    ClickKey(VirtualKeyCode.VK_A);
-                    ClickKey(VirtualKeyCode.VK_A);
                     CtrlA();
                     CtrlC();
+                    var front = ClipboardManager.GetText();
 
-                    var front = "";
+                    Console.Write(front);
                     
-                    var duplicateCheckerText = ClipboardManager.GetText();
-                    if (!duplicateCheckerText.ToLower().EndsWith("aa"))
+                    var needInfo = false;
+                    if (neededFieldIndex > 0)
                     {
-                        ClickKey(VirtualKeyCode.TAB);
-                        CtrlA();
-                        CtrlC();
-                        front = ClipboardManager.GetText();
-                        Console.Write($"{front}{Utility.PrintSpaces(front.Length,50)}DUPLICATE");
-
-                        for (var j = 0; j < 12; j++)
+                        // check needed item
+                        for (var j = 0; j < neededFieldIndex-1; j++)
                         {
                             ClickKey(VirtualKeyCode.TAB);
                         }
-                        Console.Write("\tleaved");
+                        CtrlA();
+                        ClickKey(VirtualKeyCode.RIGHT);
+                        ClickKey(VirtualKeyCode.VK_A);
+                        ClickKey(VirtualKeyCode.VK_A);
+                        CtrlA();
+                        CtrlC();
+
+                        var neededItem = ClipboardManager.GetText();
+                        if (neededItem.ToLower().Equals("aa"))
+                            needInfo = true;
+                    
+                        Console.Write($"\tInfo:{needInfo}");
+                    
+                        ClickKey(VirtualKeyCode.RIGHT);
+                        ClickKey(VirtualKeyCode.BACK);
+                        ClickKey(VirtualKeyCode.BACK);
+
+                        if (needInfo && mark!=null)
+                        {
+                            WriteText(mark);
+                        }
+                        
+                    }
+                    else
+                    {
+                        if (mark != null)
+                        {
+                            for (var j = 0; j < 5; j++)
+                            {
+                                ClickKey(VirtualKeyCode.TAB);
+                            }
+                            WriteText(mark);
+                        }
+                        needInfo = true;
+                        Console.Write($"\tInfo:{needInfo}");
+                    }
+
+                    // go on the current note
+                    CtrlF();
+                    ClickKey(VirtualKeyCode.TAB);
+                    
+                    // finish if no needed item founded
+                    if (!needInfo || missedDictionary.ContainsKey(front))
+                    {
+                        
+                        Console.Write("\tAlready Exists");
                         Console.WriteLine("\t✓");
                         continue;
                     }
-                    else
-                    {
-                        ClickKey(VirtualKeyCode.BACK);
-                        front = duplicateCheckerText.Substring(0, duplicateCheckerText.Length - 2);
-                    }
 
-
-                    // Read Front field
-                    //var actualFront = front;
-                    //var needFrontChange = front.Contains('[');
-                    //if (needFrontChange)
-                    //{
-                    //    var splitFront = front.Split('[');
-                    //    actualFront = splitFront[0];
-                    //    actualFront = Utility.FixFrontText(actualFront);
-                    //    var sound = "["+splitFront[1];
-
-                    //    // edit
-                    //    WriteText(actualFront);
-                    //    ClickKey(VirtualKeyCode.TAB);
-                    //    CtrlA();
-                    //    WriteText(sound);
-                    //}
-                    //else
-                    //{
-                    //    actualFront = Utility.FixFrontText(actualFront);
-                    //    WriteText(actualFront);
-                    //    ClickKey(VirtualKeyCode.TAB);
-                    //}
-
-                    //Console.Write($"{actualFront}{Utility.PrintSpaces(actualFront.Length,50)}\tFront:{needFrontChange}");
-                    ClickKey(VirtualKeyCode.TAB);
-                    var actualFront = front;
-                    Console.Write($"{actualFront}{Utility.PrintSpaces(actualFront.Length,50)}");
-
-                    // check TypeGroup
-                    ClickKey(VirtualKeyCode.TAB);
-                    CtrlA();
-                    ClickKey(VirtualKeyCode.RIGHT);
-                    ClickKey(VirtualKeyCode.VK_A);
-                    CtrlA();
-                    CtrlC();
-
-                    var needInfo = false;
-                    var typeGroup = ClipboardManager.GetText();
-                    if (typeGroup.ToLower().Equals("a"))
-                        needInfo = true;
-                    
-                    Console.Write($"\tInfo:{needInfo}");
-                    
-                    ClickKey(VirtualKeyCode.RIGHT);
-                    ClickKey(VirtualKeyCode.BACK);
-
-                    // check definition if contains image
-                    ClickKey(VirtualKeyCode.TAB);
-                    ClickKey(VirtualKeyCode.TAB);
-                    CtrlShiftX();
-                    CtrlA();
-                    CtrlC();
-                    CtrlShiftX();
-                    var definitionText = ClipboardManager.GetText();
-                    var needImageChange = definitionText.Contains("<img");
-
-                    Console.Write($"\tImage:{needImageChange}");
-
-                    if (needImageChange)
-                    {
-                        var startDef = definitionText.IndexOf("<img", StringComparison.Ordinal);
-                        var endDef = definitionText.IndexOf(">", startDef, StringComparison.Ordinal);
-                        var actualDef = definitionText.Substring(0, startDef);
-                        actualDef = actualDef.Replace("<br>", "");
-                        actualDef = actualDef.Replace("<br/>", "");
-                        actualDef = actualDef.Replace("</br>", "");
-                        var image = definitionText.Substring(startDef, endDef-startDef+1);
-
-                        // fix
-                        CtrlA();
-                        WriteText(actualDef);
-                        ClickKey(VirtualKeyCode.TAB);
-                        CtrlShiftX();
-                        CtrlA();
-                        WriteText(image);
-                        CtrlShiftX();
-
-                    }
-                    else
-                    {
-                        ClickKey(VirtualKeyCode.TAB);
-                    }
-
-                    for (var j = 0; j < 7; j++)
-                    {
-                        ClickKey(VirtualKeyCode.TAB);
-                    }
-                    
-                    Console.WriteLine("\t✓");
-
-                    if (!needInfo || missedDictionary.ContainsKey(actualFront)) continue;
+                    // read the needed item details
                     CtrlShiftI();
                     WindowsManager.WaitUntilTheWindowAppeared("Current Card", "CardInfo");
                     ClickKey(VirtualKeyCode.TAB);
@@ -426,24 +430,36 @@ namespace AnkiDictionary
                     noteId = noteId.Replace("\r", "");
                     noteId = noteId.Replace("\t", "");
                     
-                    missedDictionary.Add(actualFront, noteId);
+                    missedDictionary.Add(front, noteId);
 
-                    frontList += ", "+actualFront;
+                    if (frontList.Length > 0)
+                    {
+                        frontList += ", "+front;
+                    }
+                    else
+                    {
+                        frontList += front;
+                    }
                         
                     ClickKey(VirtualKeyCode.ESCAPE);
                     WindowsManager.WaitUntilTheWindowClosed("Current Card", "CardInfo");
                 
                     ClipboardManager.SetText(frontList, false);
-                    DictionaryJsonUtility.ExportDictionaryToJson(missedDictionary);
+                    await JsonFileHandler.SaveToJsonFileAsync(missedDictionary, "cardsInNeed.json");
+
+                    Console.WriteLine("\t✓");
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    await Utility.SaveAnError("Line 453 in Controller", e);
+
                     Console.WriteLine("\n____________\n");
                     Console.WriteLine("Restarting");
                     Console.WriteLine("\n____________\n");
                     ClickKey(VirtualKeyCode.ESCAPE);
-                    ProgramHandler.SeparateImageAndPronunciation(recordsCount - i + 1,skips + i + 1, filter);
+                    
+                    OpenBrowseWindow();
+                    await FindNeededItems(neededFieldIndex, recordsCount - i + 1,skips + i + 1, filter);
                     return;
                 }
                 
@@ -453,122 +469,196 @@ namespace AnkiDictionary
             Console.WriteLine("\n____________\n");
         }
 
-        public static void UpdateNotes(List<AnkiNote> ankiNotes)
+        public static async Task UpdateNotes(List<AnkiNote> ankiNotes)
         {
-            var dictionary = DictionaryJsonUtility.ImportDictionaryFromJson();
+            var dictionary = await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
+            if(dictionary  == null) return;
+
             var remaining = dictionary.Count;
                 var counter = 0;
             foreach (var item in dictionary)
             {
-                var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
-                if (note == null)
-                    continue;
-                var checker = Utility.FixFrontText(note.Text).Equals(Utility.FixFrontText(item.Key));
-                if(!checker)
-                    continue;
-                
-                counter++;
-                Console.Write($"{counter}.{item.Key}");
-
-                // find the note
-                LongPause();
-                
-                CtrlA();
-                WriteText("nid:"+item.Value);
-                ClickKey(VirtualKeyCode.RETURN);
-                ClickKey(VirtualKeyCode.TAB);
-
-                // go to first field
-                for (var i = 0; i < 4; i++)
+                try
                 {
-                    ClickKey(VirtualKeyCode.TAB);
-                }
-
-                // update data
-
-                // check duplicate
-                CtrlA();
-                CtrlC();
-                var duplicateCheckerText = ClipboardManager.GetText();
-
-                if (duplicateCheckerText.ToLower().Contains("nid:"))
-                {
-                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tWRONG nid");
-                    continue;
-                }
-
-                if (!duplicateCheckerText.ToLower().Equals(item.Key.ToLower()))
-                {
+                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
+                    if (note == null)
+                        continue;
+                    var checker = Utility.FixFrontText(note.Text).Equals(Utility.FixFrontText(item.Key));
+                    if(!checker)
+                        continue;
                     
-                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tDUPLICATE");
-                    for (var j = 0; j < 12; j++)
+                    counter++;
+                    Console.Write($"{counter}.{item.Key}");
+
+                    // find the note
+                    LongPause();
+                    CtrlF();
+                    CtrlA();
+                    WriteText("nid:"+item.Value);
+                    ClickKey(VirtualKeyCode.RETURN);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // go to first field
+                    for (var i = 0; i < 4; i++)
                     {
                         ClickKey(VirtualKeyCode.TAB);
                     }
+
+                    // update data
+
+                    // check duplicate
+                    CtrlA();
+                    CtrlC();
+                    var duplicateCheckerText = ClipboardManager.GetText();
+
+                    if (duplicateCheckerText.ToLower().Contains("nid:"))
+                    {
+                        Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tWRONG nid");
+                        continue;
+                    }
+
+                    if (!duplicateCheckerText.ToLower().Equals(item.Key.ToLower()))
+                    {
+                        Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tDUPLICATE");
+                        continue;
+                    }
+
+                    // Front
+                    WriteText(item.Key);
+                    ClickKey(VirtualKeyCode.TAB);
+            
+                    // US
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // UK
+                    ClickKey(VirtualKeyCode.TAB);
+            
+                    // Type
+                    CtrlA();
+                    WriteText(note.Type);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Usage
+                    CtrlA();
+                    WriteText(note.Usage);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Level
+                    CtrlA();
+                    WriteText(note.Level);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Band
+                    CtrlA();
+                    WriteText(note.Band);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Frequency
+                    CtrlA();
+                    WriteText(note.Frequency.ToString());
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // American Phonetic
+                    CtrlA();
+                    WriteText(note.AmericanPhonetic);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // British Phonetic
+                    CtrlA();
+                    WriteText(note.BritishPhonetic);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Definition
+                    CtrlA();
+                    WriteText(note.Definition);
+                    ClickKey(VirtualKeyCode.TAB);
+            
+                    // Image
+                    //WriteText(note.Image);
+                    ClickKey(VirtualKeyCode.TAB);
+            
+                    // Sentence
+                    CtrlA();
+                    ClickKey(VirtualKeyCode.RIGHT);
+                    ClickKey(VirtualKeyCode.SPACE);
+                    WriteText(note.Sentence);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Persian
+                    //CtrlA();
+                    //WriteText(note.Persian);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Collocation
+                    CtrlA();
+                    WriteText(GetListOf(note.Collocations), false);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Synonyms
+                    CtrlA();
+                    WriteText(GetListOf(note.Synonyms), false);
+                    ClickKey(VirtualKeyCode.TAB);
+
+                    // Antonyms
+                    CtrlA();
+                    WriteText(GetListOf(note.Antonyms), false);
+                    ClickKey(VirtualKeyCode.TAB);
+                    
+                    // Verb
+                    if (note.Verb != null)
+                    {
+                        CtrlA();
+                        WriteText(note.Verb);
+                    }
+                    ClickKey(VirtualKeyCode.TAB);
+                    
+                    // Noun
+                    if (note.Noun != null)
+                    {
+                        CtrlA();
+                        WriteText(note.Noun);
+                    }
+                    ClickKey(VirtualKeyCode.TAB);
+                    
+                    // Adjective
+                    if (note.Adjective != null)
+                    {
+                        CtrlA();
+                        WriteText(note.Adjective);
+                    }
+                    ClickKey(VirtualKeyCode.TAB);
+                    
+                    // Adverb
+                    if (note.Adverb != null)
+                    {
+                        CtrlA();
+                        WriteText(note.Adverb);
+                    }
+
+                    // Tags
+                    CtrlShiftT();
+                    foreach (var tag in note.Categories)
+                    {
+                        WriteText(tag);
+                        ClickKey(VirtualKeyCode.RETURN);
+                    }
+                    remaining--;
+                    
+                    dictionary.Remove(item.Key);
+                    await JsonFileHandler.SaveToJsonFileAsync(dictionary, "cardsInNeed.json");
+                    
+                    var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
+                    savedNotes?.RemoveAll(x => x.Text.ToLower().Equals(item.Key.ToLower()));
+                    await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
+
+                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\trem:{remaining}");
+                }
+                catch (Exception e)
+                {
+                    await Utility.SaveAnError("Line 660 in Controller", e);
                     continue;
                 }
-
-                // Front
-                WriteText(Utility.FixFrontText(item.Key));
-                ClickKey(VirtualKeyCode.TAB);
-        
-                // US
-                ClickKey(VirtualKeyCode.TAB);
-
-                // UK
-                ClickKey(VirtualKeyCode.TAB);
-        
-                // Type
-                CtrlA();
-                WriteText(note.Type);
-                ClickKey(VirtualKeyCode.TAB);
-
-                // Usage
-                CtrlA();
-                WriteText(note.Usage);
-                ClickKey(VirtualKeyCode.TAB);
-
-                // Definition
-                CtrlA();
-                WriteText(note.Definition);
-                ClickKey(VirtualKeyCode.TAB);
-        
-                // Image
-                //WriteText(note.Image);
-                ClickKey(VirtualKeyCode.TAB);
-        
-                // Sentence
-                CtrlA();
-                WriteText(note.Sentence);
-                ClickKey(VirtualKeyCode.TAB);
-
-                // Persian
-                //CtrlA();
-                //WriteText(note.Persian);
-                ClickKey(VirtualKeyCode.TAB);
-
-                // Collocation
-                CtrlA();
-                WriteText(GetListOf(note.Collocations));
-                ClickKey(VirtualKeyCode.TAB);
-
-                // Synonyms
-                CtrlA();
-                WriteText(GetListOf(note.Synonyms));
-                ClickKey(VirtualKeyCode.TAB);
-
-                // Antonyms
-                CtrlA();
-                WriteText(GetListOf(note.Antonyms));
-                ClickKey(VirtualKeyCode.TAB);
-                
-                remaining--;
-                dictionary.Remove(item.Key);
-                DictionaryJsonUtility.ExportDictionaryToJson(dictionary);
-                Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\trem:{remaining}");
             }
-            
-            ClickKey(VirtualKeyCode.ESCAPE);
         }
     }
 }
