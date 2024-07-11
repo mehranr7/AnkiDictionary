@@ -78,6 +78,15 @@ namespace AnkiDictionary
             ShortPause();
         }
         
+        private static void CtrlH()
+        {
+            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
+            ShortPause();
+            ClickKey(VirtualKeyCode.VK_H);
+            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
+            ShortPause();
+        }
+        
         private static void CtrlDelete()
         {
             Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
@@ -152,7 +161,7 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_B);
         }
         
-        public static void AddNewNote(AnkiNote note, List<string> tags)
+        public static async Task AddNewNote(AnkiNote note, List<string> tags)
         {
             
             Console.Write($"‣ {note.Text}");
@@ -301,6 +310,15 @@ namespace AnkiDictionary
             
             Console.WriteLine($"{Utility.PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
 
+            CtrlH();
+            ClickKey(VirtualKeyCode.DOWN);
+            ClickKey(VirtualKeyCode.RETURN);
+            note.NoteId = ReadNoteId();
+            ClickKey(VirtualKeyCode.ESCAPE);
+            var database = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("database.json") ?? new List<AnkiNote>();
+            database.Add(note);
+            await JsonFileHandler.SaveToJsonFileAsync(database, "database.json");
+
         }
         
         public static async Task FindNeededItems(int neededFieldIndex, int recordsCount, int skips, string? filter = null, bool doubleDown = false, string? mark = null)
@@ -417,21 +435,8 @@ namespace AnkiDictionary
                     }
 
                     // read the needed item details
-                    CtrlShiftI();
-                    WindowsManager.WaitUntilTheWindowAppeared("Current Card", "CardInfo");
-                    ClickKey(VirtualKeyCode.TAB);
-                    CtrlA();
-                    CtrlC();
-                    var cardInfo = ClipboardManager.GetText();
-                    var start = cardInfo.IndexOf("Note ID", StringComparison.Ordinal);
-                    var end = cardInfo.IndexOf("\n", start, StringComparison.Ordinal);
-                    var noteId = cardInfo.Substring(start, end-start);
-                        
-                    noteId = noteId.Replace("Note ID", "");
-                    noteId = noteId.Replace("\n", "");
-                    noteId = noteId.Replace("\r", "");
-                    noteId = noteId.Replace("\t", "");
-                    
+                    var noteId = ReadNoteId();
+
                     missedDictionary.Add(front, noteId);
 
                     if (frontList.Length > 0)
@@ -442,9 +447,6 @@ namespace AnkiDictionary
                     {
                         frontList += front;
                     }
-                        
-                    ClickKey(VirtualKeyCode.ESCAPE);
-                    WindowsManager.WaitUntilTheWindowClosed("Current Card", "CardInfo");
                 
                     ClipboardManager.SetText(frontList, false);
                     await JsonFileHandler.SaveToJsonFileAsync(missedDictionary, "cardsInNeed.json");
@@ -469,6 +471,29 @@ namespace AnkiDictionary
             
             ClickKey(VirtualKeyCode.ESCAPE);
             Console.WriteLine("\n____________\n");
+        }
+
+        private static string ReadNoteId()
+        {
+            CtrlShiftI();
+            WindowsManager.WaitUntilTheWindowAppeared("Current Card", "CardInfo");
+            ClickKey(VirtualKeyCode.TAB);
+            CtrlA();
+            CtrlC();
+            var cardInfo = ClipboardManager.GetText();
+            var start = cardInfo.IndexOf("Note ID", StringComparison.Ordinal);
+            var end = cardInfo.IndexOf("\n", start, StringComparison.Ordinal);
+            var noteId = cardInfo.Substring(start, end-start);
+                        
+            noteId = noteId.Replace("Note ID", "");
+            noteId = noteId.Replace("\n", "");
+            noteId = noteId.Replace("\r", "");
+            noteId = noteId.Replace("\t", "");
+                        
+            ClickKey(VirtualKeyCode.ESCAPE);
+            WindowsManager.WaitUntilTheWindowClosed("Current Card", "CardInfo");
+
+            return noteId;
         }
 
         public static async Task UpdateNotes(List<AnkiNote> ankiNotes)
