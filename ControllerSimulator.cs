@@ -287,6 +287,8 @@ namespace AnkiDictionary
             CtrlShiftT();
             CtrlA();
             ClickKey(VirtualKeyCode.BACK);
+            ClickKey(VirtualKeyCode.TAB);
+            CtrlShiftT();
             note.Categories.AddRange(tags);
             foreach (var tag in note.Categories)
             {
