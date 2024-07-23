@@ -291,6 +291,30 @@ namespace AnkiDictionary
             // Adverb
             if(note.Adverb!=null)
                 WriteText(note.Adverb);
+            ClickKey(VirtualKeyCode.TAB);
+            
+            // Definition Sound
+            // Ctrl + T
+            CtrlT();
+            WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
+            WriteText(note.Definition);
+
+            for (var i = 0; i < 5; i++)
+            {
+                ClickKey(VirtualKeyCode.TAB);
+            }
+            ClickKey(VirtualKeyCode.UP);
+            ClickKey(VirtualKeyCode.UP);
+            ClickKey(VirtualKeyCode.DOWN);
+            for (var i = 0; i < 5; i++)
+            {
+                ClickKey(VirtualKeyCode.TAB);
+            }
+
+            // Ctrl + Enter
+            CtrlEnter();
+            WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
+
             
             // Tags
             CtrlShiftT();
@@ -661,6 +685,31 @@ namespace AnkiDictionary
                         CtrlA();
                         WriteText(note.Adverb);
                     }
+                    ClickKey(VirtualKeyCode.TAB);
+            
+                    // Definition Sound
+                    // Ctrl + T
+                    CtrlA();
+                    ClickKey(VirtualKeyCode.BACK);
+                    CtrlT();
+                    WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
+                    WriteText(note.Definition);
+
+                    for (var i = 0; i < 5; i++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+                    ClickKey(VirtualKeyCode.UP);
+                    ClickKey(VirtualKeyCode.UP);
+                    ClickKey(VirtualKeyCode.DOWN);
+                    for (var i = 0; i < 5; i++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+
+                    // Ctrl + Enter
+                    CtrlEnter();
+                    WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
 
                     // Tags
                     CtrlShiftT();

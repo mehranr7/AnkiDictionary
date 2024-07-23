@@ -12,6 +12,7 @@
         public string AmericanPhonetic { get; set; }
         public string BritishPhonetic { get; set; }
         public string Definition { get; set; }
+        public string DefinitionSound { get; set; }
         public string? Image { get; set; }
         public string Sentence { get; set; }
         public string Persian { get; set; }
