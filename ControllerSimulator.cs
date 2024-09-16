@@ -130,21 +130,6 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
         }
-
-        private static string GetListOf(List<string> list)
-        {
-            if (list == null || list.Count == 0) return "";
-            var collocations = "";
-            foreach (var collocation in list)
-            {
-                if(collocations.Length > 0)
-                    collocations += Environment.NewLine;
-                if(collocation.Length > 0)
-                    collocations += $@"- {Utility.FixFrontText(collocation)}";
-            }
-
-            return collocations;
-        }
         
         public static void OpenAddNewWindow()
         {
@@ -262,15 +247,15 @@ namespace AnkiDictionary
             ClickKey(VirtualKeyCode.TAB);
 
             // Collocation
-            WriteText(GetListOf(note.Collocations),false);
+            WriteText(Utility.GetListOf(note.Collocations),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Synonyms
-            WriteText(GetListOf(note.Synonyms),false);
+            WriteText(Utility.GetListOf(note.Synonyms),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Antonyms
-            WriteText(GetListOf(note.Antonyms),false);
+            WriteText(Utility.GetListOf(note.Antonyms),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Verb
@@ -291,6 +276,29 @@ namespace AnkiDictionary
             // Adverb
             if(note.Adverb!=null)
                 WriteText(note.Adverb);
+            ClickKey(VirtualKeyCode.TAB);
+            
+            // Definition Sound
+            // Ctrl + T
+            CtrlT();
+            WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
+            WriteText(note.Definition);
+
+            for (var i = 0; i < 5; i++)
+            {
+                ClickKey(VirtualKeyCode.TAB);
+            }
+            ClickKey(VirtualKeyCode.UP);
+            ClickKey(VirtualKeyCode.UP);
+            ClickKey(VirtualKeyCode.DOWN);
+            for (var i = 0; i < 5; i++)
+            {
+                ClickKey(VirtualKeyCode.TAB);
+            }
+
+            // Ctrl + Enter
+            CtrlEnter();
+            WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
             
             // Tags
             CtrlShiftT();
@@ -618,17 +626,17 @@ namespace AnkiDictionary
 
                     // Collocation
                     CtrlA();
-                    WriteText(GetListOf(note.Collocations), false);
+                    WriteText(Utility.GetListOf(note.Collocations), false);
                     ClickKey(VirtualKeyCode.TAB);
 
                     // Synonyms
                     CtrlA();
-                    WriteText(GetListOf(note.Synonyms), false);
+                    WriteText(Utility.GetListOf(note.Synonyms), false);
                     ClickKey(VirtualKeyCode.TAB);
 
                     // Antonyms
                     CtrlA();
-                    WriteText(GetListOf(note.Antonyms), false);
+                    WriteText(Utility.GetListOf(note.Antonyms), false);
                     ClickKey(VirtualKeyCode.TAB);
                     
                     // Verb
@@ -661,6 +669,31 @@ namespace AnkiDictionary
                         CtrlA();
                         WriteText(note.Adverb);
                     }
+                    ClickKey(VirtualKeyCode.TAB);
+            
+                    // Definition Sound
+                    // Ctrl + T
+                    CtrlA();
+                    ClickKey(VirtualKeyCode.BACK);
+                    CtrlT();
+                    WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
+                    WriteText(note.Definition);
+
+                    for (var i = 0; i < 5; i++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+                    ClickKey(VirtualKeyCode.UP);
+                    ClickKey(VirtualKeyCode.UP);
+                    ClickKey(VirtualKeyCode.DOWN);
+                    for (var i = 0; i < 5; i++)
+                    {
+                        ClickKey(VirtualKeyCode.TAB);
+                    }
+
+                    // Ctrl + Enter
+                    CtrlEnter();
+                    WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
 
                     // Tags
                     CtrlShiftT();

@@ -1,13 +1,9 @@
 ﻿using AnkiDictionary;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
 
 // choose option
 var isAsked = false;
 var isIntroductionValid = false;
-var option = Utility.AskOptions(isAsked);
-isAsked = true;
-var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -20,6 +16,13 @@ var groupCount = config["Gemini:RegularAnswerCount"];
 var coolDown = config["Gemini:CoolDown"];
 var shortPause = config["Speed:ShortPause"];
 var longPause = config["Speed:LongPause"];
+var useAnkiConnect = config["General:UseAnkiConnect"] == "True";
+var deckName = config["General:DeckName"];
+var modelName = config["General:ModelName"];
+
+var option = Utility.AskOptions(isAsked);
+isAsked = true;
+var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "\u001b"};
 
 if (apiKey == null 
     || defaultIntroduction == null
@@ -63,15 +66,21 @@ while (!option.Equals("\u001b"))
             
             if (Utility.AskTrueFalseQuestion("Would you like to add given notes?"))
             {
-                // Going for Anki window
-                ControllerSimulator.OpenAddNewWindow();
-            
                 // Adding
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Adding new notes.");
                 foreach (var note in requestedNotes)
                 {
-                    ControllerSimulator.AddNewNote(note, tagList);
+                    if (useAnkiConnect)
+                    {
+                        await AnkiConnect.AddNewNote(note, tagList, deckName!, modelName!);
+                    }
+                    else
+                    {
+                        // Going for Anki window
+                        ControllerSimulator.OpenAddNewWindow();
+                        await ControllerSimulator.AddNewNote(note, tagList);
+                    }
                 }
             }
 
@@ -112,7 +121,14 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("Adding new notes.");
             foreach (var note in notes)
             {
-                ControllerSimulator.AddNewNote(note, tagsList);
+                if (useAnkiConnect)
+                {
+                    await AnkiConnect.AddNewNote(note, tagsList, deckName!, modelName!);
+                }
+                else
+                {
+                    await ControllerSimulator.AddNewNote(note, tagsList);
+                }
             }
 
             Console.WriteLine("Done.");
