@@ -149,19 +149,19 @@ namespace AnkiDictionary
         public static async Task AddNewNote(AnkiNote note, List<string> tags)
         {
             
-            Console.Write($"‣ {note.Text}");
+            Console.Write($"‣ {note.Front}");
 
             LongPause();
 
             // Front
-            WriteText(note.Text);
+            WriteText(note.Front);
             ClickKey(VirtualKeyCode.TAB);
 
             // US
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Text);
+            WriteText(note.Front);
 
             for (var i = 0; i < 5; i++)
             {
@@ -184,7 +184,7 @@ namespace AnkiDictionary
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Text);
+            WriteText(note.Front);
 
             for (var i = 0; i < 5; i++)
             {
@@ -316,7 +316,7 @@ namespace AnkiDictionary
             // Ctrl + Enter
             CtrlEnter();
             
-            Console.WriteLine($"{Utility.PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
+            Console.WriteLine($"{Utility.PrintSpaces(note.Front.Length,50)}\tAdded.\t✓");
 
             CtrlH();
             ClickKey(VirtualKeyCode.DOWN);
@@ -515,10 +515,10 @@ namespace AnkiDictionary
             {
                 try
                 {
-                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
+                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Front.ToLower()));
                     if (note == null)
                         continue;
-                    var checker = Utility.FixFrontText(note.Text).Equals(Utility.FixFrontText(item.Key));
+                    var checker = Utility.FixFrontText(note.Front).Equals(Utility.FixFrontText(item.Key));
                     if(!checker)
                         continue;
                     
@@ -708,7 +708,7 @@ namespace AnkiDictionary
                     await JsonFileHandler.SaveToJsonFileAsync(dictionary, "cardsInNeed.json");
                     
                     var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
-                    savedNotes?.RemoveAll(x => x.Text.ToLower().Equals(item.Key.ToLower()));
+                    savedNotes?.RemoveAll(x => x.Front.ToLower().Equals(item.Key.ToLower()));
                     await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
 
                     Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\trem:{remaining}");

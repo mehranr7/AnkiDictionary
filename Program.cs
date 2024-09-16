@@ -22,7 +22,7 @@ var modelName = config["General:ModelName"];
 
 var option = Utility.AskOptions(isAsked);
 isAsked = true;
-var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "\u001b"};
+var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "9", "\u001b"};
 
 if (apiKey == null 
     || defaultIntroduction == null
@@ -40,18 +40,20 @@ while (!validOptions.Any(x=>x.Equals(option)))
     option = Console.ReadKey(true).KeyChar.ToString();
 }
 
-if (option.Equals("1") || option.Equals("4"))
-{
-    while (!isIntroductionValid)
-    {
-        var introduction = Utility.AskAString("Give me an introduction to provide for Gemini or leave it empty to use default.");
-        await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
-        isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
-    }
-}
 
 while (!option.Equals("\u001b"))
 {
+    
+    if (option.Equals("1") || option.Equals("4"))
+    {
+        while (!isIntroductionValid)
+        {
+            var introduction = Utility.AskAString("Give me an introduction to provide for Gemini or leave it empty to use default.");
+            await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
+            isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
+        }
+    }
+
     switch (option)
     {
         case "1":
@@ -179,7 +181,7 @@ while (!option.Equals("\u001b"))
                 {
                     foreach (var temp in cardsInNeeds)
                     {
-                        if (temp.Key.ToLower() == save.Text.ToLower())
+                        if (temp.Key.ToLower() == save.Front.ToLower())
                             cardsInNeeds.Remove(temp.Key);
                     }
                 }
@@ -234,7 +236,7 @@ while (!option.Equals("\u001b"))
                 var extraCards = new List<AnkiNote>();
                 foreach (var card in savedNotes)
                 {
-                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card.Text.ToLower())))
+                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card.Front.ToLower())))
                     {
                         extraCards.Add(card);
                     }
@@ -332,6 +334,16 @@ while (!option.Equals("\u001b"))
                 await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
                 isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
             }
+            break;
+
+        case "9":
+            var notesIdList = await AnkiConnect.FindNotes("current");
+            Console.WriteLine($"{notesIdList.Count} note(s) found!");
+            await AnkiConnect.CardsInfo(notesIdList);
+
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
+            isAsked = false;
             break;
 
     }

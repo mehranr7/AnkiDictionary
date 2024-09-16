@@ -52,6 +52,7 @@
                 Console.WriteLine("6. Export needed items as a list");
                 Console.WriteLine("7. Update needed items using JSON");
                 Console.WriteLine("8. Update Gemini introduction");
+                Console.WriteLine("9. Copy All Card's Front");
                 Console.WriteLine("Esc. Exit\n");
             }
             return Console.ReadKey(true).KeyChar.ToString();
