@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
 using WindowsInput;
 using WindowsInput.Native;
 
@@ -86,16 +85,7 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
         }
-        
-        private static void CtrlDelete()
-        {
-            Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
-            ShortPause();
-            ClickKey(VirtualKeyCode.DELETE);
-            Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
-            ShortPause();
-        }
-        
+
         private static void CtrlShiftI()
         {
             Simulator.Keyboard.KeyDown(VirtualKeyCode.LCONTROL);
@@ -130,21 +120,6 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyUp(VirtualKeyCode.LCONTROL);
             ShortPause();
         }
-
-        private static string GetListOf(List<string> list)
-        {
-            if (list == null || list.Count == 0) return "";
-            var collocations = "";
-            foreach (var collocation in list)
-            {
-                if(collocations.Length > 0)
-                    collocations += Environment.NewLine;
-                if(collocation.Length > 0)
-                    collocations += $@"- {Utility.FixFrontText(collocation)}";
-            }
-
-            return collocations;
-        }
         
         public static void OpenAddNewWindow()
         {
@@ -164,19 +139,19 @@ namespace AnkiDictionary
         public static async Task AddNewNote(AnkiNote note, List<string> tags)
         {
             
-            Console.Write($"‣ {note.Text}");
+            Console.Write($"‣ {note.Front}");
 
             LongPause();
 
             // Front
-            WriteText(note.Text);
+            WriteText(note.Front);
             ClickKey(VirtualKeyCode.TAB);
 
             // US
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Text);
+            WriteText(note.Front);
 
             for (var i = 0; i < 5; i++)
             {
@@ -199,7 +174,7 @@ namespace AnkiDictionary
             // Ctrl + T
             CtrlT();
             WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Text);
+            WriteText(note.Front);
 
             for (var i = 0; i < 5; i++)
             {
@@ -262,15 +237,15 @@ namespace AnkiDictionary
             ClickKey(VirtualKeyCode.TAB);
 
             // Collocation
-            WriteText(GetListOf(note.Collocations),false);
+            WriteText(Utility.GetListOf(note.Collocations),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Synonyms
-            WriteText(GetListOf(note.Synonyms),false);
+            WriteText(Utility.GetListOf(note.Synonyms),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Antonyms
-            WriteText(GetListOf(note.Antonyms),false);
+            WriteText(Utility.GetListOf(note.Antonyms),false);
             ClickKey(VirtualKeyCode.TAB);
 
             // Verb
@@ -314,7 +289,6 @@ namespace AnkiDictionary
             // Ctrl + Enter
             CtrlEnter();
             WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-
             
             // Tags
             CtrlShiftT();
@@ -332,7 +306,7 @@ namespace AnkiDictionary
             // Ctrl + Enter
             CtrlEnter();
             
-            Console.WriteLine($"{Utility.PrintSpaces(note.Text.Length,50)}\tAdded.\t✓");
+            Console.WriteLine($"{Utility.PrintSpaces(note.Front.Length)}\tAdded.\t✓");
 
             CtrlH();
             ClickKey(VirtualKeyCode.DOWN);
@@ -531,10 +505,10 @@ namespace AnkiDictionary
             {
                 try
                 {
-                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Text.ToLower()));
+                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Front.ToLower()));
                     if (note == null)
                         continue;
-                    var checker = Utility.FixFrontText(note.Text).Equals(Utility.FixFrontText(item.Key));
+                    var checker = Utility.FixFrontText(note.Front).Equals(Utility.FixFrontText(item.Key));
                     if(!checker)
                         continue;
                     
@@ -564,13 +538,13 @@ namespace AnkiDictionary
 
                     if (duplicateCheckerText.ToLower().Contains("nid:"))
                     {
-                        Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tWRONG nid");
+                        Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length)}\t✓\tWRONG nid");
                         continue;
                     }
 
                     if (!duplicateCheckerText.ToLower().Equals(item.Key.ToLower()))
                     {
-                        Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\tDUPLICATE");
+                        Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length)}\t✓\tDUPLICATE");
                         continue;
                     }
 
@@ -642,17 +616,17 @@ namespace AnkiDictionary
 
                     // Collocation
                     CtrlA();
-                    WriteText(GetListOf(note.Collocations), false);
+                    WriteText(Utility.GetListOf(note.Collocations), false);
                     ClickKey(VirtualKeyCode.TAB);
 
                     // Synonyms
                     CtrlA();
-                    WriteText(GetListOf(note.Synonyms), false);
+                    WriteText(Utility.GetListOf(note.Synonyms), false);
                     ClickKey(VirtualKeyCode.TAB);
 
                     // Antonyms
                     CtrlA();
-                    WriteText(GetListOf(note.Antonyms), false);
+                    WriteText(Utility.GetListOf(note.Antonyms), false);
                     ClickKey(VirtualKeyCode.TAB);
                     
                     // Verb
@@ -724,10 +698,10 @@ namespace AnkiDictionary
                     await JsonFileHandler.SaveToJsonFileAsync(dictionary, "cardsInNeed.json");
                     
                     var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
-                    savedNotes?.RemoveAll(x => x.Text.ToLower().Equals(item.Key.ToLower()));
+                    savedNotes?.RemoveAll(x => x.Front.ToLower().Equals(item.Key.ToLower()));
                     await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
 
-                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length,50)}\t✓\trem:{remaining}");
+                    Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length)}\t✓\trem:{remaining}");
                 }
                 catch (Exception e)
                 {

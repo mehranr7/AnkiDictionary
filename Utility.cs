@@ -52,6 +52,7 @@
                 Console.WriteLine("6. Export needed items as a list");
                 Console.WriteLine("7. Update needed items using JSON");
                 Console.WriteLine("8. Update Gemini introduction");
+                Console.WriteLine("9. Copy All Card's Front");
                 Console.WriteLine("Esc. Exit\n");
             }
             return Console.ReadKey(true).KeyChar.ToString();
@@ -100,7 +101,30 @@
             }
             return res;
         }
+        
+        public static string GetListOf(List<string> list)
+        {
+            if (list == null || list.Count == 0) return "";
+            var collocations = "";
+            foreach (var collocation in list)
+            {
+                if(collocations.Length > 0)
+                    collocations += "\n";
+                if(collocation.Length > 0)
+                    collocations += $@"- {FixFrontText(collocation)}";
+            }
 
+            return collocations;
+        }
+
+        public static string ReplaceSpaces(string? input)
+        {
+            if (input == null)
+                return "";
+            input = input.Replace("\n", "<br>");
+            input = input.Replace(Environment.NewLine, "<br>");
+            return FixFrontText(input);
+        }
         public static void DrawProgressBar(int progress, int total)
         {
             int barLength = 50; // Length of the progress bar

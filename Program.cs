@@ -1,13 +1,9 @@
 ﻿using AnkiDictionary;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
 
 // choose option
 var isAsked = false;
 var isIntroductionValid = false;
-var option = Utility.AskOptions(isAsked);
-isAsked = true;
-var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "\u001b"};
 
 IConfiguration config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -20,6 +16,13 @@ var groupCount = config["Gemini:RegularAnswerCount"];
 var coolDown = config["Gemini:CoolDown"];
 var shortPause = config["Speed:ShortPause"];
 var longPause = config["Speed:LongPause"];
+var useAnkiConnect = config["General:UseAnkiConnect"] == "True";
+var deckName = config["General:DeckName"];
+var modelName = config["General:ModelName"];
+
+var option = Utility.AskOptions(isAsked);
+isAsked = true;
+var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "9", "\u001b"};
 
 if (apiKey == null 
     || defaultIntroduction == null
@@ -37,18 +40,20 @@ while (!validOptions.Any(x=>x.Equals(option)))
     option = Console.ReadKey(true).KeyChar.ToString();
 }
 
-if (option.Equals("1") || option.Equals("4"))
-{
-    while (!isIntroductionValid)
-    {
-        var introduction = Utility.AskAString("Give me an introduction to provide for Gemini or leave it empty to use default.");
-        await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
-        isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
-    }
-}
 
 while (!option.Equals("\u001b"))
 {
+    
+    if (option.Equals("1") || option.Equals("4"))
+    {
+        while (!isIntroductionValid)
+        {
+            var introduction = Utility.AskAString("Give me an introduction to provide for Gemini or leave it empty to use default.");
+            await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
+            isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
+        }
+    }
+
     switch (option)
     {
         case "1":
@@ -63,15 +68,21 @@ while (!option.Equals("\u001b"))
             
             if (Utility.AskTrueFalseQuestion("Would you like to add given notes?"))
             {
-                // Going for Anki window
-                ControllerSimulator.OpenAddNewWindow();
-            
                 // Adding
                 Console.WriteLine("\n____________\n");
                 Console.WriteLine("Adding new notes.");
                 foreach (var note in requestedNotes)
                 {
-                    ControllerSimulator.AddNewNote(note, tagList);
+                    if (useAnkiConnect)
+                    {
+                        await AnkiConnect.AddNewNote(note, tagList, deckName!, modelName!);
+                    }
+                    else
+                    {
+                        // Going for Anki window
+                        ControllerSimulator.OpenAddNewWindow();
+                        await ControllerSimulator.AddNewNote(note, tagList);
+                    }
                 }
             }
 
@@ -112,7 +123,14 @@ while (!option.Equals("\u001b"))
             Console.WriteLine("Adding new notes.");
             foreach (var note in notes)
             {
-                ControllerSimulator.AddNewNote(note, tagsList);
+                if (useAnkiConnect)
+                {
+                    await AnkiConnect.AddNewNote(note, tagsList, deckName!, modelName!);
+                }
+                else
+                {
+                    await ControllerSimulator.AddNewNote(note, tagsList);
+                }
             }
 
             Console.WriteLine("Done.");
@@ -163,7 +181,7 @@ while (!option.Equals("\u001b"))
                 {
                     foreach (var temp in cardsInNeeds)
                     {
-                        if (temp.Key.ToLower() == save.Text.ToLower())
+                        if (temp.Key.ToLower() == save.Front.ToLower())
                             cardsInNeeds.Remove(temp.Key);
                     }
                 }
@@ -218,7 +236,7 @@ while (!option.Equals("\u001b"))
                 var extraCards = new List<AnkiNote>();
                 foreach (var card in savedNotes)
                 {
-                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card.Text.ToLower())))
+                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card.Front.ToLower())))
                     {
                         extraCards.Add(card);
                     }
@@ -316,6 +334,16 @@ while (!option.Equals("\u001b"))
                 await geminiDictionaryConvertor.MakeAnIntroduction(introduction);
                 isIntroductionValid = Utility.AskTrueFalseQuestion("Is the introduction valid?");
             }
+            break;
+
+        case "9":
+            var notesIdList = await AnkiConnect.FindNotes("current");
+            Console.WriteLine($"{notesIdList.Count} note(s) found!");
+            await AnkiConnect.CardsInfo(notesIdList);
+
+            Console.WriteLine("Done.");
+            Console.WriteLine("\n____________\n");
+            isAsked = false;
             break;
 
     }

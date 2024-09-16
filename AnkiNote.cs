@@ -3,7 +3,7 @@
     public class AnkiNote
     {
         public string NoteId { get; set; }
-        public string Text { get; set; }
+        public string Front { get; set; }
         public string Type { get; set; }
         public string Usage { get; set; }
         public string Level { get; set; }

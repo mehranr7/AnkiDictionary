@@ -4,8 +4,6 @@ using ChatAIze.GenerativeCS.Models;
 using ChatAIze.GenerativeCS.Options.Gemini;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using System.Linq;
-using static Azure.Core.HttpHeader;
 
 namespace AnkiDictionary
 {
@@ -206,7 +204,7 @@ namespace AnkiDictionary
                 foreach (var answerNote in answerNotes)
                 {
                     notes.Add(answerNote);
-                    askedList.RemoveAll(x => x.ToLower() == answerNote.Text.ToLower());
+                    askedList.RemoveAll(x => x.ToLower() == answerNote.Front.ToLower());
                 }
 
                 var carryOnBuffering = true;
@@ -276,10 +274,10 @@ namespace AnkiDictionary
 
                 foreach (var newNote in newNotes)
                 {
-                    if (notes.Any(x => x.Text.ToLower() == newNote.Text.ToLower()))
+                    if (notes.Any(x => x.Front.ToLower() == newNote.Front.ToLower()))
                         continue;
-                    var front = Utility.FixFrontText(newNote.Text);
-                    var hasExactMatch = askedList.Any(x => x.ToLower() == newNote.Text.ToLower());
+                    var front = Utility.FixFrontText(newNote.Front);
+                    var hasExactMatch = askedList.Any(x => x.ToLower() == newNote.Front.ToLower());
                     if (askedList.Any(x=>x.ToLower().Contains(front.ToLower())) && !hasExactMatch)
                     {
                         Console.WriteLine($"‣ {front} has misspelling.");
@@ -288,9 +286,9 @@ namespace AnkiDictionary
                         if (newFront != null)
                         {
                             askedList.RemoveAll(x=>x.ToLower().Contains(front.ToLower()) && x.ToLower().Contains(newNote.Type.ToLower()));
-                            newNote.Text = Utility.FixFrontText(newFront);
-                            Console.WriteLine($"‣ {front} switched to {newNote.Text}");
-                            front = Utility.FixFrontText(newNote.Text);
+                            newNote.Front = Utility.FixFrontText(newFront);
+                            Console.WriteLine($"‣ {front} switched to {newNote.Front}");
+                            front = Utility.FixFrontText(newNote.Front);
                         }
                         else
                         {
@@ -302,7 +300,7 @@ namespace AnkiDictionary
                         askedList.Remove(front);
                     }
                     notes.Add(newNote);
-                    Console.WriteLine($"‣ {front}{Utility.PrintSpaces(newNote.Text.Length)}Rem:{total-preProcessedCount-notes.Count}");
+                    Console.WriteLine($"‣ {front}{Utility.PrintSpaces(newNote.Front.Length)}Rem:{total-preProcessedCount-notes.Count}");
                 }
 
                 _regulationList.Add(newNotes.Count);
