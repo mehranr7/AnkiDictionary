@@ -1,19 +1,34 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace AnkiDictionary
 {
     public static class AnkiConnect
     {
-        public static async Task AddNewNote(AnkiNote note, List<string> tags, string deckName, string modelName)
+        /// <summary>
+        /// Send request using Anki Connect to add new note
+        /// </summary>
+        /// <param name="note">the Json object contains data for the card</param>
+        /// <param name="tags">a list of tags for the card</param>
+        /// <param name="deckName">the name of the destined deck</param>
+        /// <param name="modelName">the name of the destined model</param>
+        /// <param name="newTag">the specific tag for new cards</param>
+        /// <returns></returns>
+        public static async Task AddNewNote(JObject note, List<string> tags, string deckName, string modelName, string mainField)
         {
             var tagsString = @"""needSound""";
+
             foreach (var tag in tags)
             {
                 tagsString += @",""" + tag + @"""";
             }
 
-            Console.Write($"‣ {note.Front}");
+            var parameterList = new List<string>();
+            foreach (var parameter in note)
+                parameterList.Add(parameter.Key.ToString());
+
+            Console.Write($"> {note[mainField]}");
 
             var options = new RestClientOptions()
             {
@@ -30,30 +45,7 @@ namespace AnkiDictionary
                     ""note"": {
                         ""deckName"": """+Utility.ReplaceSpaces(deckName)+@""",
                         ""modelName"": """+Utility.ReplaceSpaces(modelName)+@""",
-                        ""fields"": {
-                            ""Front"": """+Utility.ReplaceSpaces(note.Front)+@""",
-                            ""US"": """",
-                            ""UK"": """",
-                            ""TypeGroup"": """+Utility.ReplaceSpaces(note.Type)+@""",
-                            ""Usage"": """+Utility.ReplaceSpaces(note.Usage)+@""",
-                            ""Level"": """+Utility.ReplaceSpaces(note.Level)+@""",
-                            ""Band"": """+Utility.ReplaceSpaces(note.Band)+@""",
-                            ""Frequency"": """+Utility.ReplaceSpaces(note.Frequency.ToString())+@""",
-                            ""American Phonetic"": """+Utility.ReplaceSpaces(note.AmericanPhonetic)+@""",
-                            ""British Phonetic"": """+Utility.ReplaceSpaces(note.BritishPhonetic)+@""",
-                            ""Definition"": """+Utility.ReplaceSpaces(note.Definition)+@""",
-                            ""Image"": """",
-                            ""Sentence"": """+Utility.ReplaceSpaces(note.Sentence)+@""",
-                            ""Persian"": """+Utility.ReplaceSpaces(note.Persian)+@""",
-                            ""Collocation"": """+Utility.ReplaceSpaces(Utility.GetListOf(note.Collocations))+@""",
-                            ""Synonyms"": """+Utility.ReplaceSpaces(Utility.GetListOf(note.Synonyms))+@""",
-                            ""Antonyms"": """+Utility.ReplaceSpaces(Utility.GetListOf(note.Antonyms))+@""",
-                            ""Verb"": """+Utility.ReplaceSpaces(note.Verb)+@""",
-                            ""Noun"": """+Utility.ReplaceSpaces(note.Noun)+@""",
-                            ""Adjective"": """+Utility.ReplaceSpaces(note.Adjective)+@""",
-                            ""Adverb"": """+Utility.ReplaceSpaces(note.Adverb)+@""",
-                            ""DefinitionSound"": """"
-                            },
+                        ""fields"": "+JObjectToString(note)+@",
                         ""options"": {
                             ""allowDuplicate"": false,
                             ""duplicateScope"": ""deck"",
@@ -78,19 +70,19 @@ namespace AnkiDictionary
             try
             {
                 res = JsonConvert.DeserializeObject<dynamic>(response.Content);
-                note.NoteId = res.result.ToString();
+                note["noteID"]= res.result.ToString();
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{Utility.PrintSpaces(note.Front.Length,50)}\tError.\t✓");
+                Console.WriteLine($"{Utility.PrintSpaces(note[mainField].ToString().Length,50)}\tError.\t✓");
                 Console.WriteLine(e.Message);
                 return;
             }
 
-            Console.WriteLine($"{Utility.PrintSpaces(note.Front.Length,50)}\tAdded.\t✓");
+            Console.WriteLine($"{Utility.PrintSpaces(note[mainField].ToString().Length,50)}\tAdded.\t✓");
             
 
-            var database = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("database.json") ?? new List<AnkiNote>();
+            var database = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("database.json") ?? new List<JObject>();
             database.Add(note);
             await JsonFileHandler.SaveToJsonFileAsync(database, "database.json");
 
@@ -195,6 +187,25 @@ namespace AnkiDictionary
             
             result = result.Substring(0, result.Length-2);
             ClipboardManager.SetText(result);
+        }
+    
+        /// <summary>
+        /// Convert JObject to the string for Anki Connect
+        /// </summary>
+        /// <param name="note">The Json Object contains parameters for new Anki note</param>
+        /// <returns>The string contains field parameters getting from input surrended with brackets</returns>
+        private static string JObjectToString(JObject note)
+        {
+            if (note.Count < 1)
+                return "{}";
+            var resutl = "{\n";
+            foreach (var item in note)
+            {
+                resutl += "\"" + item.Key + "\" : \"" + Utility.ReplaceSpaces(item.Value.ToString()) + "\",\n";
+            }
+            resutl =  resutl.Substring(0, resutl.Length-2);
+            resutl += "}";
+            return resutl;
         }
     }
 }

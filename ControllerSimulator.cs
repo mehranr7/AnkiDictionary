@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
 using WindowsInput;
 using WindowsInput.Native;
 
@@ -136,159 +137,19 @@ namespace AnkiDictionary
             Simulator.Keyboard.KeyPress(VirtualKeyCode.VK_B);
         }
         
-        public static async Task AddNewNote(AnkiNote note, List<string> tags)
+        public static async Task AddNewNote(JObject note, List<string> tags)
         {
-            
-            Console.Write($"‣ {note.Front}");
+
+            Console.Write($"> {note.Properties().First().Name}");
 
             LongPause();
 
-            // Front
-            WriteText(note.Front);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // US
-            // Ctrl + T
-            CtrlT();
-            WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Front);
-
-            for (var i = 0; i < 5; i++)
+            foreach (var parameter in note)
             {
+                // Front
+                WriteText(parameter.Value.ToString());
                 ClickKey(VirtualKeyCode.TAB);
             }
-            ClickKey(VirtualKeyCode.UP);
-            ClickKey(VirtualKeyCode.UP);
-            ClickKey(VirtualKeyCode.DOWN);
-            for (var i = 0; i < 5; i++)
-            {
-                ClickKey(VirtualKeyCode.TAB);
-            }
-
-            // Ctrl + Enter
-            CtrlEnter();
-            WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            ClickKey(VirtualKeyCode.TAB);
-
-            // UK
-            // Ctrl + T
-            CtrlT();
-            WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Front);
-
-            for (var i = 0; i < 5; i++)
-            {
-                ClickKey(VirtualKeyCode.TAB);
-            }
-            ClickKey(VirtualKeyCode.UP);
-            ClickKey(VirtualKeyCode.UP);
-            for (var i = 0; i < 5; i++)
-            {
-                ClickKey(VirtualKeyCode.TAB);
-            }
-
-            // Ctrl + Enter
-            CtrlEnter();
-            WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Type
-            WriteText(note.Type);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Usage
-            WriteText(note.Usage);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Level
-            WriteText(note.Level);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Band
-            WriteText(note.Band);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Frequency
-            WriteText(note.Frequency.ToString());
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // American Phonetic
-            WriteText(note.AmericanPhonetic);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // British Phonetic
-            WriteText(note.BritishPhonetic);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Definition
-            WriteText(note.Definition);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Image
-            //WriteText(note.Image);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Sentence
-            WriteText(note.Sentence);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Persian
-            WriteText(note.Persian);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Collocation
-            WriteText(Utility.GetListOf(note.Collocations),false);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Synonyms
-            WriteText(Utility.GetListOf(note.Synonyms),false);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Antonyms
-            WriteText(Utility.GetListOf(note.Antonyms),false);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Verb
-            if(note.Verb!=null)
-                WriteText(note.Verb);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Noun
-            if(note.Noun!=null)
-                WriteText(note.Noun);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Adjective
-            if(note.Adjective!=null)
-                WriteText(note.Adjective);
-            ClickKey(VirtualKeyCode.TAB);
-
-            // Adverb
-            if(note.Adverb!=null)
-                WriteText(note.Adverb);
-            ClickKey(VirtualKeyCode.TAB);
-            
-            // Definition Sound
-            // Ctrl + T
-            CtrlT();
-            WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-            WriteText(note.Definition);
-
-            for (var i = 0; i < 5; i++)
-            {
-                ClickKey(VirtualKeyCode.TAB);
-            }
-            ClickKey(VirtualKeyCode.UP);
-            ClickKey(VirtualKeyCode.UP);
-            ClickKey(VirtualKeyCode.DOWN);
-            for (var i = 0; i < 5; i++)
-            {
-                ClickKey(VirtualKeyCode.TAB);
-            }
-
-            // Ctrl + Enter
-            CtrlEnter();
-            WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
             
             // Tags
             CtrlShiftT();
@@ -296,8 +157,7 @@ namespace AnkiDictionary
             ClickKey(VirtualKeyCode.BACK);
             ClickKey(VirtualKeyCode.TAB);
             CtrlShiftT();
-            note.Categories.AddRange(tags);
-            foreach (var tag in note.Categories)
+            foreach (var tag in tags)
             {
                 WriteText(tag);
                 ClickKey(VirtualKeyCode.RETURN);
@@ -306,14 +166,14 @@ namespace AnkiDictionary
             // Ctrl + Enter
             CtrlEnter();
             
-            Console.WriteLine($"{Utility.PrintSpaces(note.Front.Length)}\tAdded.\t✓");
+            Console.WriteLine($"{Utility.PrintSpaces(note.Properties().First().Name.Length)}\tAdded.\t✓");
 
             CtrlH();
             ClickKey(VirtualKeyCode.DOWN);
             ClickKey(VirtualKeyCode.RETURN);
-            note.NoteId = ReadNoteId();
+            note["NoteID"] = ReadNoteId();
             ClickKey(VirtualKeyCode.ESCAPE);
-            var database = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("database.json") ?? new List<AnkiNote>();
+            var database = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("database.json") ?? new List<JObject>();
             database.Add(note);
             await JsonFileHandler.SaveToJsonFileAsync(database, "database.json");
 
@@ -494,7 +354,7 @@ namespace AnkiDictionary
             return noteId;
         }
 
-        public static async Task UpdateNotes(List<AnkiNote> ankiNotes)
+        public static async Task UpdateNotes(List<JObject> ankiNotes, List<string> tagList)
         {
             var dictionary = await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
             if(dictionary  == null) return;
@@ -505,10 +365,10 @@ namespace AnkiDictionary
             {
                 try
                 {
-                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Front.ToLower()));
+                    var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Properties().First().Name.ToLower()));
                     if (note == null)
                         continue;
-                    var checker = Utility.FixFrontText(note.Front).Equals(Utility.FixFrontText(item.Key));
+                    var checker = Utility.FixFrontText(note.Properties().First().Name.ToString()).Equals(Utility.FixFrontText(item.Key));
                     if(!checker)
                         continue;
                     
@@ -548,146 +408,18 @@ namespace AnkiDictionary
                         continue;
                     }
 
-                    // Front
-                    WriteText(item.Key);
-                    ClickKey(VirtualKeyCode.TAB);
-            
-                    // US
-                    ClickKey(VirtualKeyCode.TAB);
 
-                    // UK
-                    ClickKey(VirtualKeyCode.TAB);
-            
-                    // Type
-                    CtrlA();
-                    WriteText(note.Type);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Usage
-                    CtrlA();
-                    WriteText(note.Usage);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Level
-                    CtrlA();
-                    WriteText(note.Level);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Band
-                    CtrlA();
-                    WriteText(note.Band);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Frequency
-                    CtrlA();
-                    WriteText(note.Frequency.ToString());
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // American Phonetic
-                    CtrlA();
-                    WriteText(note.AmericanPhonetic);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // British Phonetic
-                    CtrlA();
-                    WriteText(note.BritishPhonetic);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Definition
-                    CtrlA();
-                    WriteText(note.Definition);
-                    ClickKey(VirtualKeyCode.TAB);
-            
-                    // Image
-                    //WriteText(note.Image);
-                    ClickKey(VirtualKeyCode.TAB);
-            
-                    // Sentence
-                    CtrlA();
-                    ClickKey(VirtualKeyCode.RIGHT);
-                    ClickKey(VirtualKeyCode.SPACE);
-                    WriteText(note.Sentence);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Persian
-                    //CtrlA();
-                    //WriteText(note.Persian);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Collocation
-                    CtrlA();
-                    WriteText(Utility.GetListOf(note.Collocations), false);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Synonyms
-                    CtrlA();
-                    WriteText(Utility.GetListOf(note.Synonyms), false);
-                    ClickKey(VirtualKeyCode.TAB);
-
-                    // Antonyms
-                    CtrlA();
-                    WriteText(Utility.GetListOf(note.Antonyms), false);
-                    ClickKey(VirtualKeyCode.TAB);
-                    
-                    // Verb
-                    if (note.Verb != null)
+                    // 
+                    foreach (var parameter in note)
                     {
-                        CtrlA();
-                        WriteText(note.Verb);
-                    }
-                    ClickKey(VirtualKeyCode.TAB);
-                    
-                    // Noun
-                    if (note.Noun != null)
-                    {
-                        CtrlA();
-                        WriteText(note.Noun);
-                    }
-                    ClickKey(VirtualKeyCode.TAB);
-                    
-                    // Adjective
-                    if (note.Adjective != null)
-                    {
-                        CtrlA();
-                        WriteText(note.Adjective);
-                    }
-                    ClickKey(VirtualKeyCode.TAB);
-                    
-                    // Adverb
-                    if (note.Adverb != null)
-                    {
-                        CtrlA();
-                        WriteText(note.Adverb);
-                    }
-                    ClickKey(VirtualKeyCode.TAB);
-            
-                    // Definition Sound
-                    // Ctrl + T
-                    CtrlA();
-                    ClickKey(VirtualKeyCode.BACK);
-                    CtrlT();
-                    WindowsManager.WaitUntilTheWindowAppeared("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
-                    WriteText(note.Definition);
-
-                    for (var i = 0; i < 5; i++)
-                    {
+                        // Front
+                        WriteText(parameter.Value.ToString());
                         ClickKey(VirtualKeyCode.TAB);
                     }
-                    ClickKey(VirtualKeyCode.UP);
-                    ClickKey(VirtualKeyCode.UP);
-                    ClickKey(VirtualKeyCode.DOWN);
-                    for (var i = 0; i < 5; i++)
-                    {
-                        ClickKey(VirtualKeyCode.TAB);
-                    }
-
-                    // Ctrl + Enter
-                    CtrlEnter();
-                    WindowsManager.WaitUntilTheWindowClosed("AwesomeTTS: Add TTS Audio to Note", "AwesomeTTS");
 
                     // Tags
                     CtrlShiftT();
-                    foreach (var tag in note.Categories)
+                    foreach (var tag in tagList)
                     {
                         WriteText(tag);
                         ClickKey(VirtualKeyCode.RETURN);
@@ -697,8 +429,8 @@ namespace AnkiDictionary
                     dictionary.Remove(item.Key);
                     await JsonFileHandler.SaveToJsonFileAsync(dictionary, "cardsInNeed.json");
                     
-                    var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
-                    savedNotes?.RemoveAll(x => x.Front.ToLower().Equals(item.Key.ToLower()));
+                    var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json");
+                    savedNotes?.RemoveAll(x => x["Front"].ToString().ToLower().Equals(item.Key.ToLower()));
                     await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
 
                     Console.WriteLine($"{Utility.PrintSpaces(item.Key.Length)}\t✓\trem:{remaining}");

@@ -1,13 +1,16 @@
 ﻿using AnkiDictionary;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json.Linq;
+
 
 // choose option
 var isAsked = false;
 var isIntroductionValid = false;
 
-IConfiguration config = new ConfigurationBuilder()
+// Load appsettings.json
+var config = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json")
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .Build();
 
 var apiKey = config["Gemini:ApiKey"];
@@ -19,6 +22,8 @@ var longPause = config["Speed:LongPause"];
 var useAnkiConnect = config["General:UseAnkiConnect"] == "True";
 var deckName = config["General:DeckName"];
 var modelName = config["General:ModelName"];
+var newTag = config["General:NewTag"];
+var mainField = config["DynamicObject:MainField"];
 
 var option = Utility.AskOptions(isAsked);
 isAsked = true;
@@ -64,6 +69,8 @@ while (!option.Equals("\u001b"))
             if (noteTags.Contains(","))
                 tagList = noteTags.Split(",").Select(Utility.FixFrontText).ToList();
 
+            tagList.Add(newTag!);
+
             var requestedNotes = await geminiDictionaryConvertor.AskUntilCoverList(words);
             
             if (Utility.AskTrueFalseQuestion("Would you like to add given notes?"))
@@ -75,7 +82,7 @@ while (!option.Equals("\u001b"))
                 {
                     if (useAnkiConnect)
                     {
-                        await AnkiConnect.AddNewNote(note, tagList, deckName!, modelName!);
+                        await AnkiConnect.AddNewNote(note, tagList, deckName!, modelName!, mainField!);
                     }
                     else
                     {
@@ -93,7 +100,7 @@ while (!option.Equals("\u001b"))
             break;
 
         case "2":
-            List<AnkiNote> notes;
+            List<JObject> notes;
             
             var stringNotes = Utility.AskAString("Give me your note(s) to start. (JSON format)");
             
@@ -115,6 +122,8 @@ while (!option.Equals("\u001b"))
             if (tags.Contains(","))
                 tagsList = tags.Split(",").Select(Utility.FixFrontText).ToList();
 
+            tagsList.Add(newTag!);
+
             // Going for Anki window
             ControllerSimulator.OpenAddNewWindow();
             
@@ -125,7 +134,7 @@ while (!option.Equals("\u001b"))
             {
                 if (useAnkiConnect)
                 {
-                    await AnkiConnect.AddNewNote(note, tagsList, deckName!, modelName!);
+                    await AnkiConnect.AddNewNote(note, tagsList, deckName!, modelName!, mainField!);
                 }
                 else
                 {
@@ -174,14 +183,14 @@ while (!option.Equals("\u001b"))
             }
 
             var saves =
-                await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json")!;
+                await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json")!;
 
             if (saves != null)
                 foreach (var save in saves)
                 {
                     foreach (var temp in cardsInNeeds)
                     {
-                        if (temp.Key.ToLower() == save.Front.ToLower())
+                        if (temp.Key.ToLower() == save["Front"].ToString().ToLower())
                             cardsInNeeds.Remove(temp.Key);
                     }
                 }
@@ -215,7 +224,7 @@ while (!option.Equals("\u001b"))
             if (Utility.AskTrueFalseQuestion("Would you like to update the notes?"))
             {
                 ControllerSimulator.OpenBrowseWindow();
-                await ControllerSimulator.UpdateNotes(updateNotes);
+                await ControllerSimulator.UpdateNotes(updateNotes, new List<string>());
             }
 
             Console.WriteLine("Done.");
@@ -228,15 +237,15 @@ while (!option.Equals("\u001b"))
 
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Updating...\n");
-            var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
+            var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json");
 
             while (savedNotes != null && savedNotes.Count > 0)
             {
                 var dic = await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
-                var extraCards = new List<AnkiNote>();
+                var extraCards = new List<JObject>();
                 foreach (var card in savedNotes)
                 {
-                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card.Front.ToLower())))
+                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card["Front"].ToString().ToLower())))
                     {
                         extraCards.Add(card);
                     }
@@ -248,9 +257,9 @@ while (!option.Equals("\u001b"))
                 await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
 
                 ControllerSimulator.OpenBrowseWindow();
-                await ControllerSimulator.UpdateNotes(savedNotes);
+                await ControllerSimulator.UpdateNotes(savedNotes, new List<string>());
 
-                savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json");
+                savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json");
             }
             
             Console.WriteLine("Done.");
@@ -295,7 +304,7 @@ while (!option.Equals("\u001b"))
             break;
 
         case "7":
-            List<AnkiNote> updateNeededNotes;
+            List<JObject> updateNeededNotes;
 
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Give me your note(s) to start. (JSON format)");
@@ -319,7 +328,7 @@ while (!option.Equals("\u001b"))
                 break;
             }
             ControllerSimulator.OpenBrowseWindow();
-            await ControllerSimulator.UpdateNotes(updateNeededNotes);
+            await ControllerSimulator.UpdateNotes(updateNeededNotes, new List<string>());
 
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");

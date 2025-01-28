@@ -4,6 +4,7 @@ using ChatAIze.GenerativeCS.Models;
 using ChatAIze.GenerativeCS.Options.Gemini;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace AnkiDictionary
 {
@@ -19,6 +20,9 @@ namespace AnkiDictionary
         private int _regularAnswerCount;
         private bool _clearLine;
         private int _geminiRequestCounter;
+        private string _mainField;
+        private Dictionary<string, string> _dataObject;
+        private List<string> _parameterNameList;
 
         public GeminiDictionaryConvertor(string apiKey, string introduction)
         {
@@ -40,6 +44,11 @@ namespace AnkiDictionary
             _regulationList = new List<int>();
             _clearLine = false;
             _geminiRequestCounter = 0;
+            _mainField = config["DynamicObject:MainField"]!;
+            _dataObject = config.GetSection("DynamicObject:Object").Get<Dictionary<string, string>>()!;
+            _parameterNameList = new List<string>();
+            foreach (var item in _dataObject!)
+                _parameterNameList.Add(item.Key);
         }
 
         private void CoolDown()
@@ -144,10 +153,10 @@ namespace AnkiDictionary
             return response;
         }
 
-        public static async Task<List<AnkiNote>> StringToAnkiNotes(string input)
+        public static async Task<List<JObject>> StringToAnkiNotes(string input)
         {
             input += "     ";
-            var ankiNotes = new List<AnkiNote>();
+            var ankiNotes = new List<JObject>();
             try
             {
                 var start = input.IndexOf("{", StringComparison.Ordinal);
@@ -157,7 +166,7 @@ namespace AnkiDictionary
                     var ankiString = input.Substring(start, end - start + 1);
                     try
                     {
-                        var note = JsonConvert.DeserializeObject<AnkiNote>(ankiString);
+                        var note = JsonConvert.DeserializeObject<JObject>(ankiString);
                         ankiNotes.Add(note);
                         start = input.IndexOf("{", end, StringComparison.Ordinal);
                         end = input.IndexOf("}", end + 1, StringComparison.Ordinal);
@@ -180,7 +189,7 @@ namespace AnkiDictionary
             return ankiNotes;
         }
 
-        public async Task<List<AnkiNote>> AskUntilCoverList(string askedString, bool needConfirm = true, int preProcessedCount = 0, int total = 0)
+        public async Task<List<JObject>> AskUntilCoverList(string askedString, bool needConfirm = true, int preProcessedCount = 0, int total = 0)
         {
             if (needConfirm)
             {
@@ -188,7 +197,7 @@ namespace AnkiDictionary
                 Console.WriteLine("\n____________\n");
             }
 
-            var notes = new List<AnkiNote>();
+            var notes = new List<JObject>();
             var askedList = askedString.Split(",").Select(Utility.FixFrontText).ToList();
 
             if(String.IsNullOrWhiteSpace(askedList.Last()))
@@ -204,7 +213,7 @@ namespace AnkiDictionary
                 foreach (var answerNote in answerNotes)
                 {
                     notes.Add(answerNote);
-                    askedList.RemoveAll(x => x.ToLower() == answerNote.Front.ToLower());
+                    askedList.RemoveAll(x => x.ToLower() == answerNote[_mainField].ToString().ToLower());
                 }
 
                 var carryOnBuffering = true;
@@ -214,7 +223,7 @@ namespace AnkiDictionary
 
                 if (!carryOnBuffering)
                 {
-                    var preNotesList = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json") ?? new List<AnkiNote>();
+                    var preNotesList = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json") ?? new List<JObject>();
                     preNotesList.AddRange(notes);
                     await JsonFileHandler.SaveToJsonFileAsync(preNotesList, "saved.json");
                     return notes;
@@ -228,7 +237,7 @@ namespace AnkiDictionary
                         && remListBuffer[^3] == askedList.Count)
                     {
                         
-                        var preNotesList = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json") ?? new List<AnkiNote>();
+                        var preNotesList = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json") ?? new List<JObject>();
                         preNotesList.AddRange(notes);
                         await JsonFileHandler.SaveToJsonFileAsync(preNotesList, "saved.json");
 
@@ -274,33 +283,59 @@ namespace AnkiDictionary
 
                 foreach (var newNote in newNotes)
                 {
-                    if (notes.Any(x => x.Front.ToLower() == newNote.Front.ToLower()))
+                    if (notes.Any(x => x[_mainField].ToString().ToLower() == newNote[_mainField].ToString().ToLower()))
                         continue;
-                    var front = Utility.FixFrontText(newNote.Front);
-                    var hasExactMatch = askedList.Any(x => x.ToLower() == newNote.Front.ToLower());
+                    var front = Utility.FixFrontText(newNote[_mainField].ToString());
+                    var hasExactMatch = askedList.Any(x => x.ToLower() == newNote[_mainField].ToString().ToLower());
                     if (askedList.Any(x=>x.ToLower().Contains(front.ToLower())) && !hasExactMatch)
                     {
-                        Console.WriteLine($"‣ {front} has misspelling.");
-                        var newFront = askedList.FirstOrDefault(x => x.ToLower().Contains(front.ToLower()) && x.ToLower().Contains(newNote.Type.ToLower()));
+                        Console.WriteLine($"> {front} has misspelling.");
+                        var newFront = askedList.FirstOrDefault(x => x.ToLower().Contains(front.ToLower()));
 
                         if (newFront != null)
                         {
-                            askedList.RemoveAll(x=>x.ToLower().Contains(front.ToLower()) && x.ToLower().Contains(newNote.Type.ToLower()));
-                            newNote.Front = Utility.FixFrontText(newFront);
-                            Console.WriteLine($"‣ {front} switched to {newNote.Front}");
-                            front = Utility.FixFrontText(newNote.Front);
+                            askedList.RemoveAll(x=>x.ToLower().Contains(front.ToLower()));
+                            newNote[_mainField] = Utility.FixFrontText(newFront);
+                            Console.WriteLine($"> {front} switched to {newNote[_mainField].ToString()}");
+                            front = Utility.FixFrontText(newNote[_mainField].ToString());
                         }
                         else
                         {
-                            Console.WriteLine($"‣ There is no alteration for {front}");
+                            Console.WriteLine($"> There is no alteration for {front}");
                         }
                     }
                     else
                     {
                         askedList.Remove(front);
                     }
-                    notes.Add(newNote);
-                    Console.WriteLine($"‣ {front}{Utility.PrintSpaces(newNote.Front.Length)}Rem:{total-preProcessedCount-notes.Count}");
+
+                    var hasEssentials = true;
+                    foreach (var item in newNote)
+                    {
+                        try
+                        {
+                            if (_dataObject[item.Key].ToLower() == "essential" && String.IsNullOrEmpty(item.Value.ToString()))
+                                hasEssentials = false;
+                        }
+                        catch (Exception e)
+                        {
+                            hasEssentials = false;
+                            if (e.Message.ToLower().Contains("key"))
+                            {
+                                Console.WriteLine($"> The given key '{item.Key}' was not present in the provided data from Gemini for '{newNote[_mainField]}', try making a better introduction with it");
+                            }
+                        }
+                    }
+
+                    if (hasEssentials)
+                    {
+                        notes.Add(newNote);
+                        Console.WriteLine($"> {front}{Utility.PrintSpaces(newNote[_mainField].ToString().Length)}Rem:{total - preProcessedCount - notes.Count}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"> The result for {front} has not essential field(s), try making a better introduction with Gemini");
+                    }
                 }
 
                 _regulationList.Add(newNotes.Count);
@@ -338,7 +373,7 @@ namespace AnkiDictionary
                 Console.WriteLine();
                 _clearLine = true;
 
-                var preNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<AnkiNote>>("saved.json") ?? new List<AnkiNote>();
+                var preNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json") ?? new List<JObject>();
                 preNotes.AddRange(notes);
                 await JsonFileHandler.SaveToJsonFileAsync(preNotes, "saved.json");
             }
