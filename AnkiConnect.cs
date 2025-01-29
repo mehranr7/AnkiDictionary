@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Azure;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -15,14 +16,9 @@ namespace AnkiDictionary
         /// <param name="modelName">the name of the destined model</param>
         /// <param name="newTag">the specific tag for new cards</param>
         /// <returns></returns>
-        public static async Task AddNewNote(JObject note, List<string> tags, string deckName, string modelName, string mainField)
+        public static async Task AddNewNote(JObject note, List<string> tagList, string deckName, string modelName, string mainField)
         {
-            var tagsString = @"""needSound""";
-
-            foreach (var tag in tags)
-            {
-                tagsString += @",""" + tag + @"""";
-            }
+            (string fields, string tags) = JObjectToString(note, tagList);
 
             var parameterList = new List<string>();
             foreach (var parameter in note)
@@ -45,7 +41,7 @@ namespace AnkiDictionary
                     ""note"": {
                         ""deckName"": """+Utility.ReplaceSpaces(deckName)+@""",
                         ""modelName"": """+Utility.ReplaceSpaces(modelName)+@""",
-                        ""fields"": "+JObjectToString(note)+@",
+                        ""fields"": "+fields+@",
                         ""options"": {
                             ""allowDuplicate"": false,
                             ""duplicateScope"": ""deck"",
@@ -56,7 +52,7 @@ namespace AnkiDictionary
                             }
                         },
                         ""tags"": [
-                            "+tagsString+@"
+                            "+tags+@"
                         ]
                     }
                 }
@@ -194,18 +190,31 @@ namespace AnkiDictionary
         /// </summary>
         /// <param name="note">The Json Object contains parameters for new Anki note</param>
         /// <returns>The string contains field parameters getting from input surrended with brackets</returns>
-        private static string JObjectToString(JObject note)
+        private static (string, string) JObjectToString(JObject note, List<string> tagList)
         {
-            if (note.Count < 1)
-                return "{}";
+            var tags = "";
             var resutl = "{\n";
-            foreach (var item in note)
+
+            foreach (var tag in tagList)
+                tags += "\"" + tag + "\",\n";
+
+            if (note.Count > 0)
             {
-                resutl += "\"" + item.Key + "\" : \"" + Utility.ReplaceSpaces(item.Value.ToString()) + "\",\n";
+                foreach (var item in note)
+                {
+                    if (item.Key.ToLower() == "tag" || item.Key.ToLower() == "tags")
+                    {
+                        tags += Utility.ReplaceDetectedList(item.Value.ToString(),false) + ",\n";
+                    }
+                    resutl += "\"" + item.Key + "\" : \"" + Utility.ReplaceDetectedList(item.Value.ToString(),true) + "\",\n";
+                }
+
+                tags = tags.Substring(0, tags.Length - 2);
+                resutl =  resutl.Substring(0, resutl.Length-2);
             }
-            resutl =  resutl.Substring(0, resutl.Length-2);
             resutl += "}";
-            return resutl;
+
+            return (resutl, tags);
         }
     }
 }

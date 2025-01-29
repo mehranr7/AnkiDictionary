@@ -312,6 +312,8 @@ namespace AnkiDictionary
                     var hasEssentials = true;
                     foreach (var item in newNote)
                     {
+                        if (!_dataObject.Any(x => x.Key.ToLower() == item.Key.ToLower()))
+                            continue;
                         try
                         {
                             if (_dataObject[item.Key].ToLower() == "essential" && String.IsNullOrEmpty(item.Value.ToString()))

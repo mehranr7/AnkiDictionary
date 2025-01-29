@@ -1,4 +1,7 @@
-﻿namespace AnkiDictionary
+﻿using System.Diagnostics;
+using System.Text.Json;
+
+namespace AnkiDictionary
 {
     public static class Utility
     {
@@ -105,16 +108,16 @@
         public static string GetListOf(List<string> list)
         {
             if (list == null || list.Count == 0) return "";
-            var collocations = "";
+            var output = "";
             foreach (var collocation in list)
             {
-                if(collocations.Length > 0)
-                    collocations += "\n";
+                if(output.Length > 0)
+                    output += "<br>";
                 if(collocation.Length > 0)
-                    collocations += $@"- {FixFrontText(collocation)}";
+                    output += $@"- {FixFrontText(collocation)}";
             }
 
-            return collocations;
+            return output;
         }
 
         public static string ReplaceSpaces(string? input)
@@ -125,6 +128,7 @@
             input = input.Replace(Environment.NewLine, "<br>");
             return FixFrontText(input);
         }
+        
         public static void DrawProgressBar(int progress, int total)
         {
             int barLength = 50; // Length of the progress bar
@@ -179,6 +183,40 @@
             var preErrors = await JsonFileHandler.ReadFromJsonFileAsync<List<Dictionary<string, Exception>>>("errors.json");
             preErrors!.Add(error);
             await JsonFileHandler.SaveToJsonFileAsync(preErrors, "errors.json");
+        }
+    
+        public static string ReplaceDetectedList(string input, bool isForFields)
+        {
+            if (input.StartsWith("[") && input.EndsWith("]"))
+            {
+                try
+                {
+                    List<string>? list = JsonSerializer.Deserialize<List<string>>(input);
+                    if (list != null)
+                    {
+                        if (isForFields)
+                            return GetListOf(list);
+
+                        var output = "";
+                        foreach (var item in list)
+                            output += "\"" + item + "\",\n";
+                        output = output.Substring(0, output.Length - 2);
+                        return output;
+                    }
+                    else
+                    {
+                        return "";
+                    }
+                }
+                catch
+                {
+                    return "";
+                }
+            }
+            else
+            {
+                return input;
+            }
         }
     }
 }
