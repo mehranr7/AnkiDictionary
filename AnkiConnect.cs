@@ -39,8 +39,8 @@ namespace AnkiDictionary
                 ""version"": 6,
                 ""params"": {
                     ""note"": {
-                        ""deckName"": """+Utility.ReplaceSpaces(deckName)+@""",
-                        ""modelName"": """+Utility.ReplaceSpaces(modelName)+@""",
+                        ""deckName"": """+deckName+@""",
+                        ""modelName"": """+modelName+@""",
                         ""fields"": "+fields+@",
                         ""options"": {
                             ""allowDuplicate"": false,
@@ -205,6 +205,7 @@ namespace AnkiDictionary
                     if (item.Key.ToLower() == "tag" || item.Key.ToLower() == "tags")
                     {
                         tags += Utility.ReplaceDetectedList(item.Value.ToString(),false) + ",\n";
+                        continue;
                     }
                     resutl += "\"" + item.Key + "\" : \"" + Utility.ReplaceDetectedList(item.Value.ToString(),true) + "\",\n";
                 }

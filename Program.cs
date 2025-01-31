@@ -67,7 +67,7 @@ while (!option.Equals("\u001b"))
             var noteTags = Utility.AskAString("Please enter tag(s) : ");
             var tagList = new List<string>();
             if (noteTags.Contains(","))
-                tagList = noteTags.Split(",").Select(Utility.FixFrontText).ToList();
+                tagList = noteTags.Split(",").Select(Utility.FixText).ToList();
 
             tagList.Add(newTag!);
 
@@ -120,7 +120,7 @@ while (!option.Equals("\u001b"))
             var tags = Utility.AskAString("Please enter tag(s) : ");
             var tagsList = new List<string>();
             if (tags.Contains(","))
-                tagsList = tags.Split(",").Select(Utility.FixFrontText).ToList();
+                tagsList = tags.Split(",").Select(Utility.FixText).ToList();
 
             tagsList.Add(newTag!);
 

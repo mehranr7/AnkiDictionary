@@ -5,27 +5,32 @@ namespace AnkiDictionary
 {
     public static class Utility
     {
-        public static string FixFrontText(string front)
+        public static string FixText(string input)
         {
-            if(string.IsNullOrEmpty(front))
-                return front;
+            if(string.IsNullOrEmpty(input))
+                return input;
 
-            var original = front;
+            var original = input;
             try
             {
-                while (front[0] == ' ')
+                // remove the space at the beginning
+                while (input[0] == ' ')
                 {
-                    front = front.Substring(1, front.Length-1);
+                    input = input.Substring(1, input.Length-1);
                 }
-                front = front.Replace("\n", "");
-                front = front.Replace("\r", "");
-                while (front[^1] == ' ')
+
+                // preventing error by removing "
+                input = input.Replace("\"", "'");
+
+
+                // Capitalize the first letter
+                while (input[^1] == ' ')
                 {
-                    front = front.Substring(0, front.Length - 1);
+                    input = input.Substring(0, input.Length - 1);
                 }
-                front = front[0].ToString().ToUpper() + front.Substring(1, front.Length - 1);
+                input = input[0].ToString().ToUpper() + input.Substring(1, input.Length - 1);
                 
-                return front;
+                return input;
             }
             catch (Exception e)
             {
@@ -114,7 +119,7 @@ namespace AnkiDictionary
                 if(output.Length > 0)
                     output += "<br>";
                 if(collocation.Length > 0)
-                    output += $@"- {FixFrontText(collocation)}";
+                    output += $@"- {FixText(collocation)}";
             }
 
             return output;
@@ -124,11 +129,12 @@ namespace AnkiDictionary
         {
             if (input == null)
                 return "";
+            input = input.Replace("\r", "");
             input = input.Replace("\n", "<br>");
             input = input.Replace(Environment.NewLine, "<br>");
-            return FixFrontText(input);
+            return input;
         }
-        
+
         public static void DrawProgressBar(int progress, int total)
         {
             int barLength = 50; // Length of the progress bar
@@ -199,23 +205,23 @@ namespace AnkiDictionary
 
                         var output = "";
                         foreach (var item in list)
-                            output += "\"" + item + "\",\n";
+                            output += "\"" + FixText(item) + "\",\n";
                         output = output.Substring(0, output.Length - 2);
                         return output;
                     }
                     else
                     {
-                        return "";
+                        return FixText(input);
                     }
                 }
                 catch
                 {
-                    return "";
+                    return FixText(input);
                 }
             }
             else
             {
-                return input;
+                return FixText(input);
             }
         }
     }

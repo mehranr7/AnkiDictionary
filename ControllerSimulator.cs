@@ -38,7 +38,7 @@ namespace AnkiDictionary
             if(string.IsNullOrEmpty(text))
                 return;
 
-            Simulator.Keyboard.TextEntry(fixText ? Utility.FixFrontText(text) : text);
+            Simulator.Keyboard.TextEntry(fixText ? Utility.FixText(text) : text);
             ShortPause();
         }
         
@@ -368,7 +368,7 @@ namespace AnkiDictionary
                     var note = ankiNotes.FirstOrDefault(note => item.Key.ToLower().Contains(note.Properties().First().Name.ToLower()));
                     if (note == null)
                         continue;
-                    var checker = Utility.FixFrontText(note.Properties().First().Name.ToString()).Equals(Utility.FixFrontText(item.Key));
+                    var checker = Utility.FixText(note.Properties().First().Name.ToString()).Equals(Utility.FixText(item.Key));
                     if(!checker)
                         continue;
                     

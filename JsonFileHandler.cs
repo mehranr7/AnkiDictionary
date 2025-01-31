@@ -14,8 +14,6 @@ namespace AnkiDictionary
             }
             catch (Exception ex)
             {
-                await Utility.SaveAnError("Line 17 in Json", ex);
-                Console.WriteLine($"An error occurred while saving to JSON file: {ex.Message}");
             }
         }
 

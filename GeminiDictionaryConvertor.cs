@@ -198,7 +198,7 @@ namespace AnkiDictionary
             }
 
             var notes = new List<JObject>();
-            var askedList = askedString.Split(",").Select(Utility.FixFrontText).ToList();
+            var askedList = askedString.Split(",").Select(Utility.FixText).ToList();
 
             if(String.IsNullOrWhiteSpace(askedList.Last()))
                 askedList.RemoveAt(askedList.Count-1);
@@ -283,9 +283,9 @@ namespace AnkiDictionary
 
                 foreach (var newNote in newNotes)
                 {
-                    if (notes.Any(x => x[_mainField].ToString().ToLower() == newNote[_mainField].ToString().ToLower()))
+                    if (newNote[_mainField] == null && notes.Any(x => x[_mainField] != null && x[_mainField].ToString().ToLower() == newNote[_mainField].ToString().ToLower()))
                         continue;
-                    var front = Utility.FixFrontText(newNote[_mainField].ToString());
+                    var front = Utility.FixText(newNote[_mainField].ToString());
                     var hasExactMatch = askedList.Any(x => x.ToLower() == newNote[_mainField].ToString().ToLower());
                     if (askedList.Any(x=>x.ToLower().Contains(front.ToLower())) && !hasExactMatch)
                     {
@@ -295,9 +295,9 @@ namespace AnkiDictionary
                         if (newFront != null)
                         {
                             askedList.RemoveAll(x=>x.ToLower().Contains(front.ToLower()));
-                            newNote[_mainField] = Utility.FixFrontText(newFront);
+                            newNote[_mainField] = Utility.FixText(newFront);
                             Console.WriteLine($"> {front} switched to {newNote[_mainField].ToString()}");
-                            front = Utility.FixFrontText(newNote[_mainField].ToString());
+                            front = Utility.FixText(newNote[_mainField].ToString());
                         }
                         else
                         {
@@ -316,15 +316,22 @@ namespace AnkiDictionary
                             continue;
                         try
                         {
-                            if (_dataObject[item.Key].ToLower() == "essential" && String.IsNullOrEmpty(item.Value.ToString()))
+                            if (_dataObject[item.Key]!=null && _dataObject[item.Key].ToLower() == "essential" && String.IsNullOrEmpty(item.Value.ToString()))
+                            {
+                                Console.WriteLine($"> '{item.Key}' has not found!");
                                 hasEssentials = false;
+                            }
                         }
                         catch (Exception e)
                         {
                             hasEssentials = false;
                             if (e.Message.ToLower().Contains("key"))
                             {
-                                Console.WriteLine($"> The given key '{item.Key}' was not present in the provided data from Gemini for '{newNote[_mainField]}', try making a better introduction with it");
+                                Console.WriteLine($"> '{item.Key}' has not provided for '{newNote[_mainField]}'");
+                            }
+                            else
+                            {
+                                Console.WriteLine($"> Error while checking parameters '{item.Key}' in '{newNote[_mainField]}'");
                             }
                         }
                     }
@@ -336,7 +343,7 @@ namespace AnkiDictionary
                     }
                     else
                     {
-                        Console.WriteLine($"> The result for {front} has not essential field(s), try making a better introduction with Gemini");
+                        Console.WriteLine($"> {front} skipped!");
                     }
                 }
 
