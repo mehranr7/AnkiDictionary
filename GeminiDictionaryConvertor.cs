@@ -283,8 +283,13 @@ namespace AnkiDictionary
 
                 foreach (var newNote in newNotes)
                 {
-                    if (newNote[_mainField] == null && notes.Any(x => x[_mainField] != null && x[_mainField].ToString().ToLower() == newNote[_mainField].ToString().ToLower()))
+                    if (newNote == null || !newNote.ContainsKey(_mainField) || newNote[_mainField] == null)
                         continue;
+                    if (notes.Any(x => x != null && x.ContainsKey(_mainField) &&
+                                        x[_mainField] != null &&
+                                        x[_mainField].ToString().ToLower() == newNote[_mainField].ToString().ToLower()))
+                        continue;
+
                     var front = Utility.FixText(newNote[_mainField].ToString());
                     var hasExactMatch = askedList.Any(x => x.ToLower() == newNote[_mainField].ToString().ToLower());
                     if (askedList.Any(x=>x.ToLower().Contains(front.ToLower())) && !hasExactMatch)
