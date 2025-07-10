@@ -1,5 +1,4 @@
-﻿using Azure;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -204,7 +203,18 @@ namespace AnkiDictionary
                 {
                     if (item.Key.ToLower() == "tag" || item.Key.ToLower() == "tags")
                     {
-                        tags += Utility.ReplaceDetectedList(item.Value.ToString(),false) + ",\n";
+                        if (item.Value.ToString().Contains('"'))
+                        {
+                            tags += "\"" + Utility.ReplaceDetectedList(item.Value.ToString(), false) + "\",\n";
+                        }
+                        else
+                        {
+                            var tList = item.Value.ToString().Split(",");
+                            foreach (var t in tList)
+                            {
+                                tags += "\"" + Utility.ReplaceDetectedList(t, false) + "\",\n";
+                            }
+                        }
                         continue;
                     }
                     resutl += "\"" + item.Key + "\" : \"" + Utility.ReplaceDetectedList(item.Value.ToString(),true) + "\",\n";

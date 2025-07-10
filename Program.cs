@@ -14,6 +14,7 @@ var config = new ConfigurationBuilder()
     .Build();
 
 var apiKey = config["Gemini:ApiKey"];
+var model = config["Gemini:Model"];
 var defaultIntroduction = config["Gemini:DefaultIntroduction"];
 var groupCount = config["Gemini:RegularAnswerCount"];
 var coolDown = config["Gemini:CoolDown"];
@@ -38,7 +39,7 @@ if (apiKey == null
     return;
 
 var geminiDictionaryConvertor =
-    new GeminiDictionaryConvertor(apiKey, defaultIntroduction);
+    new GeminiDictionaryConvertor(apiKey, defaultIntroduction, model!);
 
 while (!validOptions.Any(x=>x.Equals(option)))
 {

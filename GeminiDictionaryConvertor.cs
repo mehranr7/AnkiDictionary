@@ -1,7 +1,5 @@
-﻿using ChatAIze.GenerativeCS.Constants;
-using ChatAIze.GenerativeCS.Clients;
-using ChatAIze.GenerativeCS.Models;
-using ChatAIze.GenerativeCS.Options.Gemini;
+﻿
+using GenerativeAI;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -10,10 +8,11 @@ namespace AnkiDictionary
 {
     public class GeminiDictionaryConvertor
     {
-        private readonly ChatCompletionOptions _completionOptions;
-        private readonly GeminiClient _client;
-        private readonly ChatConversation _conversation;
+        private readonly GenerativeModel _model;
+        private readonly ChatSession _chat;
+        private readonly GoogleAi _client;
         private readonly string _introduction;
+        private readonly string _modelName;
         private readonly int _coolDown;
         private readonly List<int> _regulationList;
         private readonly int _maximumRequests;
@@ -24,15 +23,13 @@ namespace AnkiDictionary
         private Dictionary<string, string> _dataObject;
         private List<string> _parameterNameList;
 
-        public GeminiDictionaryConvertor(string apiKey, string introduction)
+        public GeminiDictionaryConvertor(string apiKey, string introduction, string modelName)
         {
             _introduction = introduction;
-            _client = new GeminiClient(apiKey);
-            _conversation = new ChatConversation();
-            _completionOptions = new ChatCompletionOptions()
-            {
-                Model = ChatCompletionModels.Gemini.GeminiPro
-            };
+            _modelName = modelName;
+            _client = new GoogleAi(apiKey);
+            _model = _client.CreateGenerativeModel("models/gemini-2.0-flash-lite");
+            _chat = _model.StartChat();
             IConfiguration config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json")
@@ -94,17 +91,13 @@ namespace AnkiDictionary
 
             var failureCounter = 0;
             var response = "";
-            var chatQuestion = new ChatMessage()
-            {
-                Content = question
-            };
-            _conversation.Messages.Add(chatQuestion);
             while (string.IsNullOrEmpty(response))
             {
                 try
                 {
                     _geminiRequestCounter++;
-                    response = await _client.CompleteAsync(_conversation,_completionOptions);
+                    var res = await _chat.GenerateContentAsync(question);
+                    response = res.Text();
                 }
                 catch (Exception e)
                 {
@@ -127,13 +120,28 @@ namespace AnkiDictionary
 
                         failureCounter++;
                     }
+                    else if (e.Message.ToLower().Contains("403"))
+                    {
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine("Error 403 - Forbidden!");
+                        Console.WriteLine("\n____________\n");
+                        _clearLine = false;
+                    }
+                    else if (e.Message.ToLower().Contains("404"))
+                    {
+                        Console.WriteLine("\n____________\n");
+                        Console.WriteLine("Error 404 - Not Found!");
+                        Console.WriteLine("\n____________\n");
+                        _clearLine = false;
+                    }
                     else
                     {
-                        
+
                         await Utility.SaveAnError(
                             "Line 125 - \n\"A problem posed while asking Gemini.", e);
                         _clearLine = false;
-                        
+
+                        Console.WriteLine(e.Message);
 
                         if (failureCounter > 2)
                         {
