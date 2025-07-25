@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Net.WebSockets;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -205,7 +206,23 @@ namespace AnkiDictionary
                     {
                         if (item.Value.ToString().Contains('"'))
                         {
-                            tags += "\"" + Utility.ReplaceDetectedList(item.Value.ToString(), false) + "\",\n";
+                            var t = item.Value.ToString();
+                            t = t.Replace("["," ");
+                            t = t.Replace("]"," ");
+                            t = t.Replace("\n"," ");
+                            t = t.Replace("\r"," ");
+                            t = t.Replace("\""," ");
+                            if(t.Contains(","))
+                            {
+                                foreach (var tg in t.Split(','))
+                                {
+                                    tags += "\"" + Utility.ReplaceDetectedList(tg, false) + "\",\n";
+                                }
+                            }
+                            else
+                            {
+                                tags += "\"" + Utility.ReplaceDetectedList(t, false) + "\",\n";
+                            }
                         }
                         else
                         {
