@@ -52,15 +52,12 @@ namespace AnkiDictionary
             if (!isAsked)
             {
                 Console.WriteLine("What do you want to do?");
-                Console.WriteLine("1. Ask Gemini then copy note(s)");
-                Console.WriteLine("2. Give me note(s) to add them to Anki");
-                Console.WriteLine("3. Find needed items");
-                Console.WriteLine("4. Update needed items using Gemini");
-                Console.WriteLine("5. Update needed items using local saved cards");
-                Console.WriteLine("6. Export needed items as a list");
-                Console.WriteLine("7. Update needed items using JSON");
-                Console.WriteLine("8. Update Gemini introduction");
-                Console.WriteLine("9. Copy All Card's Front");
+                Console.WriteLine("1. Add note(s) using Gemini");
+                Console.WriteLine("2. Add note(s) using JSON");
+                Console.WriteLine("3. Update items using Gemini");
+                //Console.WriteLine("4. Update items using JSON");
+                Console.WriteLine("5. Update Gemini introduction");
+                Console.WriteLine("6. Copy All Card's Front");
                 Console.WriteLine("Esc. Exit\n");
             }
             return Console.ReadKey(true).KeyChar.ToString();

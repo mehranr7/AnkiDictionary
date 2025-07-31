@@ -11,10 +11,10 @@ namespace AnkiDictionary
         /// Send request using Anki Connect to add new note
         /// </summary>
         /// <param name="note">the Json object contains data for the card</param>
-        /// <param name="tags">a list of tags for the card</param>
+        /// <param name="tagList">a list of tags for the card</param>
         /// <param name="deckName">the name of the destined deck</param>
         /// <param name="modelName">the name of the destined model</param>
-        /// <param name="newTag">the specific tag for new cards</param>
+        /// <param name="mainField">the main field (usually front)</param>
         /// <returns></returns>
         public static async Task AddNewNote(JObject note, List<string> tagList, string deckName, string modelName, string mainField)
         {
@@ -84,7 +84,81 @@ namespace AnkiDictionary
 
         }
 
-        public static async Task<List<long>> FindNotes(string deckName)
+        /// <summary>
+        /// Send request using Anki Connect to update note
+        /// </summary>
+        /// <param name="id">the id of the card to update</param>
+        /// <param name="note">the Json object contains data for the card</param>
+        /// <param name="tagList">a list of tags for the card</param>
+        /// <param name="deckName">the name of the destined deck</param>
+        /// <param name="modelName">the name of the destined model</param>
+        /// <param name="mainField">the main field (usually front)</param>
+        /// <returns></returns>
+        public static async Task UpdateNote(string id, JObject note, List<string> tagList, string mainField)
+        {
+            (string fields, string tags) = JObjectToString(note, tagList);
+
+            var parameterList = new List<string>();
+            foreach (var parameter in note)
+                parameterList.Add(parameter.Key.ToString());
+
+            Console.Write($"> {note[mainField]}");
+
+            var options = new RestClientOptions()
+            {
+                MaxTimeout = -1,
+            };
+            var client = new RestClient(options);
+            var request = new RestRequest("http://localhost:8765", Method.Get);
+            request.AddHeader("Content-Type", "application/json");
+            var body =
+            @"{
+                ""action"": ""updateNote"",
+                ""version"": 6,
+                ""params"": {
+                    ""note"": {
+                        ""id"": " + id + @",
+                        ""fields"": " + fields + @",
+                        ""tags"": [
+                            " + tags + @"
+                        ]
+                    }
+                }
+            }";
+
+            request.AddStringBody(body, DataFormat.Json);
+            RestResponse response = await client.ExecuteAsync(request);
+
+            dynamic res;
+
+            try
+            {
+                res = JsonConvert.DeserializeObject<dynamic>(response.Content);
+                note["noteID"] = res.result.ToString();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{Utility.PrintSpaces(note[mainField].ToString().Length, 50)}\tError.\t✓");
+                Console.WriteLine(e.Message);
+                return;
+            }
+
+            Console.WriteLine($"{Utility.PrintSpaces(note[mainField].ToString().Length, 50)}\tUpdated.\t✓");
+
+
+            var database = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("database.json") ?? new List<JObject>();
+            database.Add(note);
+            await JsonFileHandler.SaveToJsonFileAsync(database, "database.json");
+
+        }
+
+        /// <summary>
+        /// Find list of note IDs with filters
+        /// </summary>
+        /// <param name="query">the query to filter in Anki</param>
+        /// <param name="max">the max number of note IDs to return</param>
+        /// <returns>The list of note IDs in the form of string spearated with comma</returns>
+        public static async Task<string> FindNotes(string query, int max = int.MaxValue)
         {
             var options = new RestClientOptions()
             {
@@ -101,40 +175,44 @@ namespace AnkiDictionary
 " + "\n" +
                        @"    ""params"": {
 " + "\n" +
-                       $@"        ""query"": ""deck:{deckName}""
+                       $@"        ""query"": ""{query.Replace("\"","\\\"")}""
 " + "\n" +
                        @"    }
 " + "\n" +
                        @"}";
             request.AddStringBody(body, DataFormat.Json);
             RestResponse response = await client.ExecuteAsync(request);
-            var responseList = new List<long>();
+            var responseList = "";
             try
             {
                 var Obj = JsonConvert.DeserializeObject<dynamic>(response.Content);
-                foreach (var item in Obj.result)
+                if(Obj["result"] != null)
                 {
-                    responseList.Add((long)item);
+                    foreach (var item in Obj["result"])
+                    {
+                        if (max <= 0)
+                            break;
+                        responseList += item.ToString() + ", ";
+                        max--;
+                    }
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
             }
-
+            responseList = responseList.Substring(0, responseList.Length - 2);
             return responseList;
         }
 
-        public static async Task CardsInfo(List<long> cards)
+        /// <summary>
+        /// Get the noteId and the mainField of note(s)
+        /// </summary>
+        /// <param name="noteIDs">a list of note IDs in the form of string separated by comma</param>
+        /// <param name="mainField">the main field of the note type</param>
+        /// <returns>List of strings containing NoteId and mainField separated by comma</returns>
+        public static async Task<Stack<string>> NotesInfo(string noteIDs, string mainField)
         {
-            string cardsString = "[";
-            foreach (var card in cards)
-            {
-                cardsString += card + ",";
-            }
-
-            cardsString = cardsString.Substring(0, cardsString.Length-1);
-            cardsString += "]";
 
             var options = new RestClientOptions()
             {
@@ -145,13 +223,13 @@ namespace AnkiDictionary
             request.AddHeader("Content-Type", "application/json");
             var body = @"{
 " + "\n" +
-                       @"    ""action"": ""cardsInfo"",
+                       @"    ""action"": ""notesInfo"",
 " + "\n" +
                        @"    ""version"": 6,
 " + "\n" +
                        @"    ""params"": {
 " + "\n" +
-                       @"        ""cards"": "+cardsString+@"
+                       @"        ""notes"": [" + noteIDs + @"]
 " + "\n" +
                        @"    }
 " + "\n" +
@@ -159,7 +237,7 @@ namespace AnkiDictionary
             request.AddStringBody(body, DataFormat.Json);
             RestResponse response = await client.ExecuteAsync(request);
 
-            var result = "";
+            var result = new Stack<string>();
             try
             {
                 var deserializedObject = JsonConvert.DeserializeObject<dynamic>(response.Content);
@@ -168,7 +246,7 @@ namespace AnkiDictionary
                 {
                     try
                     {
-                        result+=item.fields.Front.value.ToString()+", ";
+                        result.Push(item.fields[mainField].value.ToString() + ","+ item["noteId"].ToString());
                     }
                     catch (Exception e)
                     {
@@ -180,9 +258,8 @@ namespace AnkiDictionary
             {
                 Console.WriteLine(e.Message);
             }
-            
-            result = result.Substring(0, result.Length-2);
-            ClipboardManager.SetText(result);
+
+            return result;
         }
     
         /// <summary>

@@ -1,4 +1,6 @@
-﻿using AnkiDictionary;
+﻿using System.Net.WebSockets;
+using AnkiDictionary;
+using GenerativeAI.Types.RagEngine;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 
@@ -15,7 +17,7 @@ var config = new ConfigurationBuilder()
 
 var apiKey = config["Gemini:ApiKey"];
 var model = config["Gemini:Model"];
-var defaultIntroduction = config["Gemini:DefaultIntroduction"];
+var defaultIntroduction = File.ReadAllText("AI Explanation.txt"); ;
 var groupCount = config["Gemini:RegularAnswerCount"];
 var coolDown = config["Gemini:CoolDown"];
 var shortPause = config["Speed:ShortPause"];
@@ -24,6 +26,7 @@ var useAnkiConnect = config["General:UseAnkiConnect"] == "True";
 var deckName = config["General:DeckName"];
 var modelName = config["General:ModelName"];
 var newTag = config["General:NewTag"];
+var editTag = config["General:EditTag"];
 var mainField = config["DynamicObject:MainField"];
 
 var option = Utility.AskOptions(isAsked);
@@ -50,7 +53,7 @@ while (!validOptions.Any(x=>x.Equals(option)))
 while (!option.Equals("\u001b"))
 {
     
-    if (option.Equals("1") || option.Equals("4"))
+    if (option.Equals("1") || option.Equals("3"))
     {
         while (!isIntroductionValid)
         {
@@ -150,193 +153,58 @@ while (!option.Equals("\u001b"))
             break;
 
         case "3":
-            var filter = Utility.AskAString("Give me the text if you want me to apply filter:");
-            if (filter == "")
-                filter = null;
-            var neededFieldIndex = Utility.AskAnInteger("Give me the index of field which you wanna check:");
+            var query = Utility.AskAString("Give me the query to apply filter (leave empty to update ALL notes of the deck):");
+            if (query == "")
+                query = "deck:"+deckName;
+
             var recordCount = Utility.AskAnInteger("How many record do you want me to check?");
-            var skips = Utility.AskAnInteger("How many record do you want me to skip?");
             var mark =  Utility.AskAString("Give me a text mark if you want to leave a mark on note otherwise leave it empty:");
             if (mark == "")
                 mark = null;
-            
-            var doubleDown = Utility.AskTrueFalseQuestion("Do you want to enable double down?");
+
+            var filteredNotes = await AnkiConnect.FindNotes(query, recordCount);
+
+            var tempTag = Utility.AskAString("Please enter tag(s) : ");
+            var newTagList = new List<string>();
+            if (tempTag.Contains(","))
+                newTagList = tempTag.Split(",").Select(Utility.FixText).ToList();
+
+            newTagList.Add(newTag!);
+
+            var dictNotes = await AnkiConnect.NotesInfo(filteredNotes, mainField!);
+
+
+            // Updating
             Console.WriteLine("\n____________\n");
-            
-            ControllerSimulator.OpenBrowseWindow();
-            await ControllerSimulator.FindNeededItems(neededFieldIndex, recordCount, skips, filter, doubleDown, mark);
+            Console.WriteLine("Updating new notes.");
 
-            Console.WriteLine("Done.");
-            Console.WriteLine("\n____________\n");
-            isAsked = false;
-            break;
-
-        case "4":
-            
-            var cardsInNeeds =
-                await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
-
-            if (cardsInNeeds == null)
+            while (dictNotes.Any())
             {
-                Console.WriteLine("\n____________\n");
-                isAsked = false;
-                break;
-            }
-
-            var saves =
-                await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json")!;
-
-            if (saves != null)
-                foreach (var save in saves)
+                var notesToAsk = "";
+                var notePairs = new List<string>();
+                for (int i = 0; i < int.Parse(groupCount); i++)
                 {
-                    foreach (var temp in cardsInNeeds)
-                    {
-                        if (temp.Key.ToLower() == save["Front"].ToString().ToLower())
-                            cardsInNeeds.Remove(temp.Key);
-                    }
+                    var currentNote = dictNotes.Pop();
+                    notePairs.Add(currentNote);
+                    notesToAsk += currentNote.Split(',')[0] + ",";
                 }
-
-            var neededNotes = cardsInNeeds.Keys.Reverse().ToList();
-            var howMany = -1;
-
-            while (howMany < 1 || howMany > neededNotes.Count)
-            {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine($"There are {neededNotes.Count} cards.");
-                howMany = Utility.AskAnInteger("How many cards do you want to update?");
-            }
-
-            neededNotes = neededNotes.Take(howMany).ToList();
-            
-            var stringUpdateNotes = "";
-
-            foreach (var neededNote in neededNotes)
-            {
-                stringUpdateNotes += neededNote + ", ";
-            }
-
-            if (stringUpdateNotes.Length > 3)
-            {
-                stringUpdateNotes = stringUpdateNotes.Substring(0, stringUpdateNotes.Length - 2);
-            }
-
-            var updateNotes = await geminiDictionaryConvertor.AskUntilCoverList(stringUpdateNotes);
-            
-            if (Utility.AskTrueFalseQuestion("Would you like to update the notes?"))
-            {
-                ControllerSimulator.OpenBrowseWindow();
-                await ControllerSimulator.UpdateNotes(updateNotes, new List<string>());
+                
+                var updatedNote = await geminiDictionaryConvertor.AskUntilCoverList(notesToAsk,false);
+                foreach (var item in notePairs)
+                {
+                    var pair = item.Split(',');
+                    var updatedItem = updatedNote.FirstOrDefault(x => x[mainField!]!.ToString().ToLower().Contains(pair[0].ToLower()));
+                    if(updatedItem!=null)
+                        await AnkiConnect.UpdateNote(pair[1], updatedItem, newTagList, mainField!);
+                }
             }
 
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
             isAsked = false;
-            
             break;
 
         case "5":
-
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Updating...\n");
-            var savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json");
-
-            while (savedNotes != null && savedNotes.Count > 0)
-            {
-                var dic = await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
-                var extraCards = new List<JObject>();
-                foreach (var card in savedNotes)
-                {
-                    if (dic != null && !dic.Any(x => x.Key.ToLower().Equals(card["Front"].ToString().ToLower())))
-                    {
-                        extraCards.Add(card);
-                    }
-                }
-
-                foreach (var extraCard in extraCards)
-                    savedNotes.Remove(extraCard);
-
-                await JsonFileHandler.SaveToJsonFileAsync(savedNotes, "saved.json");
-
-                ControllerSimulator.OpenBrowseWindow();
-                await ControllerSimulator.UpdateNotes(savedNotes, new List<string>());
-
-                savedNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json");
-            }
-            
-            Console.WriteLine("Done.");
-            Console.WriteLine("\n____________\n");
-            isAsked = false;
-            break;
-
-        case "6":
-
-            var dictionary =
-                await JsonFileHandler.ReadFromJsonFileAsync<Dictionary<string, string>>("cardsInNeed.json");
-            if(dictionary == null)
-            {
-                Console.WriteLine("\n____________\n");
-                isAsked = false;
-                break;
-            }
-
-            var cardsInNeed = "";
-            foreach (var card in dictionary)
-            {
-                cardsInNeed += card.Key + ", ";
-            }
-            if (cardsInNeed.Length > 3)
-            {
-                cardsInNeed = cardsInNeed.Substring(0, cardsInNeed.Length - 3);
-            }
-
-            if (cardsInNeed.Length > 0)
-            {
-                ClipboardManager.SetText(cardsInNeed);
-            
-                Console.WriteLine($"{dictionary.Count} words/phrases copied.");
-                Console.WriteLine("\n____________\n");
-            }
-            else
-            {
-                Console.WriteLine("There is no words/phrases remaining.");
-                Console.WriteLine("\n____________\n");
-            }
-            isAsked = false;
-            break;
-
-        case "7":
-            List<JObject> updateNeededNotes;
-
-            Console.WriteLine("\n____________\n");
-            Console.WriteLine("Give me your note(s) to start. (JSON format)");
-            var stringUpdateNeededNotes = Console.ReadLine();
-            while (stringUpdateNeededNotes is null)
-            {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Give me your note(s) to start. (JSON format)");
-                stringUpdateNeededNotes = Console.ReadLine();
-            }
-            try
-            {
-                updateNeededNotes = await GeminiDictionaryConvertor.StringToAnkiNotes(stringUpdateNeededNotes);
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("\n____________\n");
-                Console.WriteLine("Wrong format! Please notice the given note(s) must be in JSON format.");
-                Console.WriteLine("\n____________\n");
-                isAsked = false;
-                break;
-            }
-            ControllerSimulator.OpenBrowseWindow();
-            await ControllerSimulator.UpdateNotes(updateNeededNotes, new List<string>());
-
-            Console.WriteLine("Done.");
-            Console.WriteLine("\n____________\n");
-            isAsked = false;
-            break;
-        
-        case "8":
             isIntroductionValid = false;
             while (!isIntroductionValid)
             {
@@ -346,10 +214,8 @@ while (!option.Equals("\u001b"))
             }
             break;
 
-        case "9":
-            var notesIdList = await AnkiConnect.FindNotes("current");
-            Console.WriteLine($"{notesIdList.Count} note(s) found!");
-            await AnkiConnect.CardsInfo(notesIdList);
+        case "6":
+            var notesIdList = await AnkiConnect.FindNotes("deck:"+deckName);
 
             Console.WriteLine("Done.");
             Console.WriteLine("\n____________\n");
