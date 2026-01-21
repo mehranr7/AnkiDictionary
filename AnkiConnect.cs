@@ -26,10 +26,7 @@ namespace AnkiDictionary
 
             Console.Write($"> {note[mainField]}");
 
-            var options = new RestClientOptions()
-            {
-                MaxTimeout = -1,
-            };
+            var options = new RestClientOptions();
             var client = new RestClient(options);
             var request = new RestRequest("http://localhost:8765", Method.Get);
             request.AddHeader("Content-Type", "application/json");
@@ -104,10 +101,7 @@ namespace AnkiDictionary
 
             Console.Write($"> {note[mainField]}");
 
-            var options = new RestClientOptions()
-            {
-                MaxTimeout = -1,
-            };
+            var options = new RestClientOptions();
             var client = new RestClient(options);
             var request = new RestRequest("http://localhost:8765", Method.Get);
             request.AddHeader("Content-Type", "application/json");
@@ -160,10 +154,7 @@ namespace AnkiDictionary
         /// <returns>The list of note IDs in the form of string spearated with comma</returns>
         public static async Task<string> FindNotes(string query, int max = int.MaxValue)
         {
-            var options = new RestClientOptions()
-            {
-                MaxTimeout = -1,
-            };
+            var options = new RestClientOptions();
             var client = new RestClient(options);
             var request = new RestRequest("http://localhost:8765", Method.Get);
             request.AddHeader("Content-Type", "application/json");
@@ -214,10 +205,7 @@ namespace AnkiDictionary
         public static async Task<Stack<string>> NotesInfo(string noteIDs, string mainField)
         {
 
-            var options = new RestClientOptions()
-            {
-                MaxTimeout = -1,
-            };
+            var options = new RestClientOptions();
             var client = new RestClient(options);
             var request = new RestRequest("http://localhost:8765", Method.Get);
             request.AddHeader("Content-Type", "application/json");

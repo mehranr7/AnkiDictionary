@@ -97,9 +97,11 @@ namespace AnkiDictionary
 
         public static string AskAString(string question)
         {
+            Console.InputEncoding = System.Text.Encoding.UTF8;
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.WriteLine("\n____________\n");
             Console.WriteLine(question);
-            var res = Console.ReadLine();
+            string? res = Console.ReadLine();
             while (res == null )
             {
                 res = Console.ReadLine();

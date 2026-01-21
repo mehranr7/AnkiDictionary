@@ -28,7 +28,7 @@ namespace AnkiDictionary
             _introduction = introduction;
             _modelName = modelName;
             _client = new GoogleAi(apiKey);
-            _model = _client.CreateGenerativeModel("models/gemini-2.0-flash-lite");
+            _model = _client.CreateGenerativeModel(modelName);
             _chat = _model.StartChat();
             IConfiguration config = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())

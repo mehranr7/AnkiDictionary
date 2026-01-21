@@ -4,6 +4,8 @@ using GenerativeAI.Types.RagEngine;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 
+System.Console.InputEncoding = System.Text.Encoding.UTF8;
+System.Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // choose option
 var isAsked = false;
@@ -129,7 +131,7 @@ while (!option.Equals("\u001b"))
             tagsList.Add(newTag!);
 
             // Going for Anki window
-            ControllerSimulator.OpenAddNewWindow();
+            //ControllerSimulator.OpenAddNewWindow();
             
             // Adding
             Console.WriteLine("\n____________\n");
@@ -158,18 +160,16 @@ while (!option.Equals("\u001b"))
                 query = "deck:"+deckName;
 
             var recordCount = Utility.AskAnInteger("How many record do you want me to check?");
-            var mark =  Utility.AskAString("Give me a text mark if you want to leave a mark on note otherwise leave it empty:");
-            if (mark == "")
-                mark = null;
-
-            var filteredNotes = await AnkiConnect.FindNotes(query, recordCount);
 
             var tempTag = Utility.AskAString("Please enter tag(s) : ");
             var newTagList = new List<string>();
             if (tempTag.Contains(","))
                 newTagList = tempTag.Split(",").Select(Utility.FixText).ToList();
 
-            newTagList.Add(newTag!);
+            newTagList.Add(editTag!);
+
+
+            var filteredNotes = await AnkiConnect.FindNotes(query, recordCount);
 
             var dictNotes = await AnkiConnect.NotesInfo(filteredNotes, mainField!);
 
@@ -184,9 +184,12 @@ while (!option.Equals("\u001b"))
                 var notePairs = new List<string>();
                 for (int i = 0; i < int.Parse(groupCount); i++)
                 {
-                    var currentNote = dictNotes.Pop();
-                    notePairs.Add(currentNote);
-                    notesToAsk += currentNote.Split(',')[0] + ",";
+                    if (dictNotes.Any())
+                    {
+                        var currentNote = dictNotes.Pop();
+                        notePairs.Add(currentNote);
+                        notesToAsk += currentNote.Split(',')[0] + ",";
+                    }
                 }
                 
                 var updatedNote = await geminiDictionaryConvertor.AskUntilCoverList(notesToAsk,false);
