@@ -223,5 +223,29 @@ namespace AnkiDictionary
                 return FixText(input);
             }
         }
+
+        public static int CalculateLevenshteinDistance(string source, string target)
+        {
+            if (string.IsNullOrEmpty(source)) return string.IsNullOrEmpty(target) ? 0 : target.Length;
+            if (string.IsNullOrEmpty(target)) return source.Length;
+
+            var d = new int[source.Length + 1, target.Length + 1];
+
+            for (var i = 0; i <= source.Length; d[i, 0] = i++) { }
+            for (var j = 0; j <= target.Length; d[0, j] = j++) { }
+
+            for (var i = 1; i <= source.Length; i++)
+            {
+                for (var j = 1; j <= target.Length; j++)
+                {
+                    var cost = (target[j - 1] == source[i - 1]) ? 0 : 1;
+
+                    d[i, j] = Math.Min(
+                        Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+            return d[source.Length, target.Length];
+        }
     }
 }

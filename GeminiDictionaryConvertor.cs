@@ -221,7 +221,24 @@ namespace AnkiDictionary
                 foreach (var answerNote in answerNotes)
                 {
                     notes.Add(answerNote);
-                    askedList.RemoveAll(x => x.ToLower() == answerNote[_mainField].ToString().ToLower());
+                    var front = Utility.FixText(answerNote[_mainField].ToString());
+                    var exactMatch = askedList.FirstOrDefault(x => x.ToLower() == front.ToLower());
+                    if (exactMatch != null)
+                    {
+                        askedList.Remove(exactMatch);
+                    }
+                    else
+                    {
+                        var closestMatch = askedList
+                            .Select(x => new { Word = x, Distance = Utility.CalculateLevenshteinDistance(front.ToLower(), x.ToLower()) })
+                            .OrderBy(x => x.Distance)
+                            .FirstOrDefault();
+
+                        if (closestMatch != null && closestMatch.Distance <= (closestMatch.Word.Length / 3) + 1)
+                        {
+                            askedList.Remove(closestMatch.Word);
+                        }
+                    }
                 }
 
                 var carryOnBuffering = true;
@@ -257,10 +274,9 @@ namespace AnkiDictionary
             }
 
             var notesStringToAsk = String.Join(", ", askedList.ToArray());
-            var remainingNotes = total - preProcessedCount;
-            var carryOn = true;
-            var remList = new List<int> { remainingNotes };
-            while (remainingNotes>0 && carryOn && !string.IsNullOrEmpty(notesStringToAsk))
+            var remList = new List<int> { askedList.Count };
+
+            while (askedList.Count > 0 && !string.IsNullOrEmpty(notesStringToAsk))
             {
                 if (_regulationList.Any())
                 {
@@ -299,27 +315,28 @@ namespace AnkiDictionary
                         continue;
 
                     var front = Utility.FixText(newNote[_mainField].ToString());
-                    var hasExactMatch = askedList.Any(x => x.ToLower() == newNote[_mainField].ToString().ToLower());
-                    if (askedList.Any(x=>x.ToLower().Contains(front.ToLower())) && !hasExactMatch)
+                    
+                    var exactMatch = askedList.FirstOrDefault(x => x.ToLower() == front.ToLower());
+                    if (exactMatch != null)
                     {
-                        Console.WriteLine($"> {front} has misspelling.");
-                        var newFront = askedList.FirstOrDefault(x => x.ToLower().Contains(front.ToLower()));
+                        askedList.Remove(exactMatch);
+                    }
+                    else
+                    {
+                        var closestMatch = askedList
+                            .Select(x => new { Word = x, Distance = Utility.CalculateLevenshteinDistance(front.ToLower(), x.ToLower()) })
+                            .OrderBy(x => x.Distance)
+                            .FirstOrDefault();
 
-                        if (newFront != null)
+                        if (closestMatch != null && closestMatch.Distance <= (closestMatch.Word.Length / 3) + 1)
                         {
-                            askedList.RemoveAll(x=>x.ToLower().Contains(front.ToLower()));
-                            newNote[_mainField] = Utility.FixText(newFront);
-                            Console.WriteLine($"> {front} switched to {newNote[_mainField].ToString()}");
-                            front = Utility.FixText(newNote[_mainField].ToString());
+                            Console.WriteLine($"> AI spelling correction: mapped '{closestMatch.Word}' to '{front}'.");
+                            askedList.Remove(closestMatch.Word);
                         }
                         else
                         {
                             Console.WriteLine($"> There is no alteration for {front}");
                         }
-                    }
-                    else
-                    {
-                        askedList.Remove(front);
                     }
 
                     var hasEssentials = true;
@@ -388,38 +405,28 @@ namespace AnkiDictionary
 
                 _regulationList.Add(newNotes.Count);
 
-                remainingNotes -= newNotes.Count;
-
                 notesStringToAsk = String.Join(", ", askedList.ToArray());
 
-                if (string.IsNullOrEmpty(notesStringToAsk))
-                {
-                    carryOn = false;
-                }
-                else
-                {
-                    carryOn = true;
-                
-                    if(needConfirm)
-                        carryOn = Utility.AskTrueFalseQuestion("Carry on asking remaining cards?");
-                }
-                remList.Add(remainingNotes);
+                remList.Add(askedList.Count);
 
                 if(remList.Count > 2)
-                    if (remList[^1] == remainingNotes
-                        && remList[^2] == remainingNotes
-                        && remList[^3] == remainingNotes)
+                    if (remList[^1] == askedList.Count
+                        && remList[^2] == askedList.Count
+                        && remList[^3] == askedList.Count)
                     {
                         Console.WriteLine("\n____________\n");
                         Console.WriteLine("Ops! there's a problem with remaining or Gemini introduction.");
                         Console.WriteLine("Let's let the remaining slide");
                         break;
                     }
-                
-                Console.WriteLine($"\nNext to ask : {notesStringToAsk}");
-                Utility.DrawProgressBar(preProcessedCount+notes.Count, total);
-                Console.WriteLine();
-                _clearLine = true;
+
+                if (askedList.Count > 0)
+                {
+                    Console.WriteLine($"\nNext to ask : {notesStringToAsk}");
+                    Utility.DrawProgressBar(preProcessedCount+notes.Count, total);
+                    Console.WriteLine();
+                    _clearLine = true;
+                }
 
                 var preNotes = await JsonFileHandler.ReadFromJsonFileAsync<List<JObject>>("saved.json") ?? new List<JObject>();
                 preNotes.AddRange(notes);
