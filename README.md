@@ -79,13 +79,28 @@
     </li>
 </ul>
 
-<h2>Usage</h2>
+<h2>Getting Started & Installation</h2>
+
+<h3>1. Prerequisites</h3>
+<ul>
+    <li>Download and install <a href="https://dotnet.microsoft.com/download">.NET 9.0 SDK</a>.</li>
+    <li>Download and install <a href="https://apps.ankiweb.net/">Anki</a>.</li>
+    <li>Install the <a href="https://ankiweb.net/shared/info/2055492159">AnkiConnect</a> add-on inside Anki (Add-on code: <code>2055492159</code>).</li>
+    <li>Get a <a href="https://aistudio.google.com/app/apikey">Google Gemini API Key</a>.</li>
+</ul>
+
+<h3>2. Setup</h3>
 <ol>
-    <li>Ensure Anki is running with AnkiConnect enabled.</li>
-    <li>Set up <code>appsettings.json</code> with your Gemini API key.</li>
-    <li>Run the application.</li>
-    <li>Notes will be added automatically to Anki.</li>
+    <li>Clone or download this repository to your local machine.</li>
+    <li>Open the folder and navigate to the <code>appsettings.json</code> file.</li>
+    <li>Insert your Gemini API key into the <code>"ApiKey"</code> field.</li>
+    <li>(Optional) Adjust the target deck (<code>"DeckName"</code>) and model (<code>"ModelName"</code>) to match the ones you use in Anki.</li>
 </ol>
+
+<h3>3. Running the App</h3>
+<p>Make sure your Anki application is open and running in the background. Then, open your terminal (or command prompt) in the project directory and run:</p>
+<pre><code>dotnet run</code></pre>
+<p>The console application will launch and present you with an interactive menu to start adding or updating notes using Gemini!</p>
 
 <h2>Report bugs or further recommendation</h2>
 <p>Feel free to suggest your ideas or report bugs via <code>mr.mehran75@gmail.com</code></p>
