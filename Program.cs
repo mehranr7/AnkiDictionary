@@ -34,8 +34,6 @@ if (string.IsNullOrWhiteSpace(apiKey))
 var model = config["Gemini:Model"];
 var groupCount = config["Gemini:RegularAnswerCount"];
 var coolDown = config["Gemini:CoolDown"];
-var shortPause = config["Speed:ShortPause"];
-var longPause = config["Speed:LongPause"];
 var deckName = config["General:DeckName"];
 var modelName = config["General:ModelName"];
 var newTag = config["General:NewTag"];
@@ -43,8 +41,7 @@ var editTag = config["General:EditTag"];
 var mainField = config["DynamicObject:MainField"];
 
 if (string.IsNullOrWhiteSpace(model) || string.IsNullOrWhiteSpace(groupCount) || 
-    string.IsNullOrWhiteSpace(coolDown) || string.IsNullOrWhiteSpace(shortPause) || 
-    string.IsNullOrWhiteSpace(longPause) || string.IsNullOrWhiteSpace(deckName) || 
+    string.IsNullOrWhiteSpace(coolDown) || string.IsNullOrWhiteSpace(deckName) || 
     string.IsNullOrWhiteSpace(modelName) || string.IsNullOrWhiteSpace(mainField))
 {
     Console.WriteLine("Error: One or more required configurations are missing in appsettings.json.");
