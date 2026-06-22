@@ -1,4 +1,4 @@
-﻿
+
 using GenerativeAI;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -323,16 +323,29 @@ namespace AnkiDictionary
                     }
 
                     var hasEssentials = true;
+                    var tagsToAppend = new List<string>();
+
                     foreach (var item in newNote)
                     {
                         if (!_dataObject.Any(x => x.Key.ToLower() == item.Key.ToLower()))
                             continue;
                         try
                         {
-                            if (_dataObject[item.Key]!=null && _dataObject[item.Key].ToLower() == "essential" && String.IsNullOrEmpty(item.Value.ToString()))
+                            var requirementStr = _dataObject[item.Key]?.ToLower() ?? "";
+                            var isEssential = requirementStr.Contains("essential");
+                            var isTag = requirementStr.Contains("tag");
+                            
+                            var valStr = item.Value?.ToString() ?? "";
+
+                            if (isEssential && string.IsNullOrWhiteSpace(valStr))
                             {
                                 Console.WriteLine($"> '{item.Key}' has not found!");
                                 hasEssentials = false;
+                            }
+
+                            if (isTag && !string.IsNullOrWhiteSpace(valStr))
+                            {
+                                tagsToAppend.Add(valStr.Replace(" ", "_"));
                             }
                         }
                         catch (Exception e)
@@ -346,6 +359,19 @@ namespace AnkiDictionary
                             {
                                 Console.WriteLine($"> Error while checking parameters '{item.Key}' in '{newNote[_mainField]}'");
                             }
+                        }
+                    }
+
+                    if (tagsToAppend.Any())
+                    {
+                        if (newNote["Tags"] != null)
+                        {
+                            var existingTags = newNote["Tags"].ToString();
+                            newNote["Tags"] = (existingTags + " " + string.Join(" ", tagsToAppend)).Trim();
+                        }
+                        else
+                        {
+                            newNote["Tags"] = string.Join(" ", tagsToAppend);
                         }
                     }
 
