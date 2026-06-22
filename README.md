@@ -9,8 +9,9 @@
 <h2>Features</h2>
 <ul>
     <li>Extracts necessary fields from Gemini API responses.</li>
-    <li>Adds notes to Anki via AnkiConnect.</li>
+    <li>Adds notes seamlessly to Anki strictly via the AnkiConnect API.</li>
     <li>Configurable options in <code>appsettings.json</code>.</li>
+    <li>Robust configuration validation on startup.</li>
 </ul>
 
 <h2>Configuration</h2>
@@ -31,7 +32,6 @@
     "LongPause": 500
   },
   "General": {
-    "UseAnkiConnect": true,
     "DeckName": "default",
     "ModelName": "Basic",
     "NewTag": "!New"
@@ -66,7 +66,6 @@
     </li>
     <li><strong>General</strong>
         <ul>
-            <li><code>UseAnkiConnect</code>: If <code>true</code>, uses AnkiConnect; if <code>false</code>, simulates keyboard input.</li>
             <li><code>DeckName</code>: Target deck for the notes.</li>
             <li><code>ModelName</code>: Note type used in Anki.</li>
             <li><code>NewTag</code>: Default tag for new notes.</li>

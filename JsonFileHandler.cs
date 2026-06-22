@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace AnkiDictionary
 {
@@ -12,7 +12,7 @@ namespace AnkiDictionary
                 var jsonString = JsonSerializer.Serialize(obj);
                 await File.WriteAllTextAsync(filePath, jsonString);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

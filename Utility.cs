@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace AnkiDictionary
@@ -86,7 +86,7 @@ namespace AnkiDictionary
                 {
                     res = Int32.Parse(Console.ReadLine()!);
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     continue;
                 }

@@ -1,4 +1,4 @@
-﻿using System.Net.WebSockets;
+using System.Net.WebSockets;
 using AnkiDictionary;
 using GenerativeAI.Types.RagEngine;
 using Microsoft.Extensions.Configuration;
@@ -17,31 +17,43 @@ var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .Build();
 
+if (!File.Exists("AI Explanation.txt"))
+{
+    Console.WriteLine("Error: 'AI Explanation.txt' is missing in the project directory.");
+    return;
+}
+var defaultIntroduction = File.ReadAllText("AI Explanation.txt");
+
 var apiKey = config["Gemini:ApiKey"];
+if (string.IsNullOrWhiteSpace(apiKey))
+{
+    Console.WriteLine("Error: API Key is required for Google Gemini AI. Please set 'Gemini:ApiKey' in appsettings.json.");
+    return;
+}
+
 var model = config["Gemini:Model"];
-var defaultIntroduction = File.ReadAllText("AI Explanation.txt"); ;
 var groupCount = config["Gemini:RegularAnswerCount"];
 var coolDown = config["Gemini:CoolDown"];
 var shortPause = config["Speed:ShortPause"];
 var longPause = config["Speed:LongPause"];
-var useAnkiConnect = config["General:UseAnkiConnect"] == "True";
 var deckName = config["General:DeckName"];
 var modelName = config["General:ModelName"];
 var newTag = config["General:NewTag"];
 var editTag = config["General:EditTag"];
 var mainField = config["DynamicObject:MainField"];
 
+if (string.IsNullOrWhiteSpace(model) || string.IsNullOrWhiteSpace(groupCount) || 
+    string.IsNullOrWhiteSpace(coolDown) || string.IsNullOrWhiteSpace(shortPause) || 
+    string.IsNullOrWhiteSpace(longPause) || string.IsNullOrWhiteSpace(deckName) || 
+    string.IsNullOrWhiteSpace(modelName) || string.IsNullOrWhiteSpace(mainField))
+{
+    Console.WriteLine("Error: One or more required configurations are missing in appsettings.json.");
+    return;
+}
+
 var option = Utility.AskOptions(isAsked);
 isAsked = true;
 var validOptions = new List<string> {"1", "2", "3", "4", "5", "6", "7", "8", "9", "\u001b"};
-
-if (apiKey == null 
-    || defaultIntroduction == null
-    || groupCount == null
-    || coolDown == null
-    || shortPause == null
-    || longPause == null)
-    return;
 
 var geminiDictionaryConvertor =
     new GeminiDictionaryConvertor(apiKey, defaultIntroduction, model!);
@@ -86,16 +98,7 @@ while (!option.Equals("\u001b"))
                 Console.WriteLine("Adding new notes.");
                 foreach (var note in requestedNotes)
                 {
-                    if (useAnkiConnect)
-                    {
-                        await AnkiConnect.AddNewNote(note, tagList, deckName!, modelName!, mainField!);
-                    }
-                    else
-                    {
-                        // Going for Anki window
-                        ControllerSimulator.OpenAddNewWindow();
-                        await ControllerSimulator.AddNewNote(note, tagList);
-                    }
+                    await AnkiConnect.AddNewNote(note, tagList, deckName!, modelName!, mainField!);
                 }
             }
 
@@ -130,22 +133,12 @@ while (!option.Equals("\u001b"))
 
             tagsList.Add(newTag!);
 
-            // Going for Anki window
-            //ControllerSimulator.OpenAddNewWindow();
-            
             // Adding
             Console.WriteLine("\n____________\n");
             Console.WriteLine("Adding new notes.");
             foreach (var note in notes)
             {
-                if (useAnkiConnect)
-                {
-                    await AnkiConnect.AddNewNote(note, tagsList, deckName!, modelName!, mainField!);
-                }
-                else
-                {
-                    await ControllerSimulator.AddNewNote(note, tagsList);
-                }
+                await AnkiConnect.AddNewNote(note, tagsList, deckName!, modelName!, mainField!);
             }
 
             Console.WriteLine("Done.");

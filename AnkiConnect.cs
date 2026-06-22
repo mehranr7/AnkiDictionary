@@ -1,4 +1,4 @@
-﻿using System.Net.WebSockets;
+using System.Net.WebSockets;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
@@ -236,7 +236,7 @@ namespace AnkiDictionary
                     {
                         result.Push(item.fields[mainField].value.ToString() + ","+ item["noteId"].ToString());
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         continue;
                     }
